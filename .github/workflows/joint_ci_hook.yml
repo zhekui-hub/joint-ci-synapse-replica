@@ -17,7 +17,6 @@ on:
 
 permissions:
   contents: read
-  actions: read
 
 jobs:
   independent-contract:
@@ -28,10 +27,10 @@ jobs:
       matrix:
         case: [default, negative-contract]
     env:
-      synapse_REPOSITORY: synapse
-      synapse_SOURCE_WORKFLOW: joint_ci_hook
-      synapse_SOURCE_JOB: independent-contract
-      synapse_SCOPE: private
+      REPLICA_REPOSITORY: synapse
+      REPLICA_SOURCE_WORKFLOW: joint_ci_hook
+      REPLICA_SOURCE_JOB: independent-contract
+      REPLICA_SCOPE: private
       MATRIX_JSON: ${{ toJson(matrix) }}
     steps:
       - uses: actions/checkout@v4
@@ -43,13 +42,13 @@ jobs:
     if: ${{ always() }}
     runs-on: [self-hosted, replica-synapse]
     env:
-      synapse_REPOSITORY: synapse
+      REPLICA_REPOSITORY: synapse
       JOINT_CI_ID: ${{ inputs.joint_id || 'replica-pr' }}
       JOINT_WAIT: ${{ inputs.joint_wait || 'true' }}
-      JOINT_DEPS_JSON: ${{ inputs.depends_on_json || '{}' }}
-      synapse_SOURCE_WORKFLOW: joint_ci_hook
-      synapse_SOURCE_JOB: joint-report
-      synapse_SCOPE: public
+      JOINT_DEPS_JSON: ${{ inputs.depends_on_json || '{{}}' }}
+      REPLICA_SOURCE_WORKFLOW: joint_ci_hook
+      REPLICA_SOURCE_JOB: joint-report
+      REPLICA_SCOPE: public
       GITHUB_HEAD_REF: ${{ github.head_ref || github.ref_name }}
       GITHUB_SHA: ${{ github.sha }}
     steps:

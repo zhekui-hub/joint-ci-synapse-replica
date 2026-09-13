@@ -10,7 +10,7 @@ name: AI Code Review (PR-Agent) [replica dry-run]
     inputs:
       pr_number:
         description: PR number to review
-        required: 'true'
+        required: true
         type: number
 permissions:
   contents: read
