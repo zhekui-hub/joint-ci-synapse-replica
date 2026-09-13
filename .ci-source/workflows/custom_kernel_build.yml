@@ -1,0 +1,138 @@
+name: DLCSynapse build Custom Kernel
+
+on:
+  push:
+    branches: 
+    # Use the default main branch, if the name of the main branch changed, you should change the name here.
+    - main
+  
+  pull_request:
+    branches:
+    # Use the default main branch, if the name of the main branch changed, you should change the name here.
+    - main
+
+
+jobs:
+  build_DLCSynapse:
+    # The CMake configure and build commands are platform agnostic and should work equally
+    # well on Windows or Mac.  You can convert this to a matrix build if you need
+    # cross-platform coverage.
+    # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
+    runs-on: [self-hosted, 192.168.2.214]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: build DLCSynapse for push
+      id: synapse-build-push
+      if: ${{ github.event_name == 'push' }}
+      run: |
+          apt install -y cppcheck cpplint
+          cd ../..
+          export LLVM_PATH=$(pwd)/LLVM/LLVM
+          cd DLCSynapse/DLCSynapse
+          find . -path ./tests -prune -o -type f \( -name "synapse_state.cpp" -o -name "synapse_core.cpp" \) -print | xargs -I {} sh -c 'echo Checking {}; cppcheck {};'
+          find . -path ./tests -prune -o -type f \( -name "synapse_state.cpp" -o -name "synapse_core.cpp" \) -print | xargs -I {} sh -c 'echo Checking {}; cpplint --filter=-build/include_subdir,-whitespace/line_length,-whitespace/braces,-build/c++11,-runtime/printf,-build/namespaces,-runtime/int,-runtime/references {}'
+          ./build.sh
+          cd build
+          make install
+
+    - name: build DLCSynapse for pull request
+      id: synapse-build-pr
+      if: ${{ github.event_name == 'pull_request' }}
+      run: |
+          apt install -y cppcheck cpplint
+          cd ../..
+          export LLVM_PATH=$(pwd)/LLVM/LLVM
+          cd DLCSynapse/DLCSynapse
+          find . -path ./tests -prune -o -type f \( -name "synapse_state.cpp" -o -name "synapse_core.cpp" \) -print | xargs -I {} sh -c 'echo Checking {}; cppcheck {}; '
+          find . -path ./tests -prune -o -type f \( -name "synapse_state.cpp" -o -name "synapse_core.cpp" \) -print | xargs -I {} sh -c 'echo Checking {}; cpplint --filter=-build/include_subdir,-whitespace/line_length,-whitespace/braces,-build/c++11,-runtime/printf,-build/namespaces,-runtime/int,-runtime/references {}'
+          bash ./build_for_ci.sh
+          cd build
+          make install
+
+    - name: build custom_kernel for push
+      id: custom-kernel-build-push
+      if: ${{ github.event_name == 'push' }}
+      run: |
+          cd ../..
+          export LLVM_PATH=$(pwd)/LLVM/LLVM/
+          export DLCSIM_PATH=$(pwd)/DLCsim/DLCsim
+          export SYNAP_PATH=$(pwd)/DLCSynapse/DLCSynapse
+          export LD_LIBRARY_PATH=/usr/local/chipltech/simulator/lib:/usr/local/chipltech/thunk/lib/:/usr/local/chipltech/synapse/lib/:$LD_LIBRARY_PATH
+          cd DLC_Custom_Kernel/DLC_Custom_Kernel
+          rm -rf build
+          mkdir build && cd build
+          cmake ../ -G Ninja -DBUILD_TARGET=ALL
+          ninja install
+          ninja syntests
+
+    - name: build custom_kernel for pull request
+      id: custom-kernel-build-pr
+      if: ${{ github.event_name == 'pull_request' }}
+      run: |
+          cd ../..
+          export LLVM_PATH=$(pwd)/LLVM/LLVM/
+          export DLCSIM_PATH=$(pwd)/DLCsim/DLCsim
+          export SYNAP_PATH=$(pwd)/DLCSynapse/DLCSynapse
+          export LD_LIBRARY_PATH=/usr/local/chipltech/simulator/lib:/usr/local/chipltech/thunk/lib/:/usr/local/chipltech-ci/synapse/lib/:$LD_LIBRARY_PATH
+          cd DLC_Custom_Kernel/DLC_Custom_Kernel
+          rm -rf build
+          mkdir build && cd build
+          cmake ../ -G Ninja -DBUILD_TARGET=ALL -DCMAKE_INSTALL_PREFIX=/usr/local/chipltech-ci/synapse
+          ninja install
+          ninja syntests
+
+    - name: update commit
+      if: ${{ success() && github.event_name == 'push' }}
+      run: |
+        cd ../../Commit/DLCSynapse
+        git checkout main
+        current_branch=$(git branch --show-current)
+        git fetch origin
+        behind_count=$(git rev-list --count HEAD..origin/$current_branch)
+        if [ $behind_count -gt 0 ]; then
+            echo "Your branch is behind 'origin/$current_branch' by $behind_count commits."
+            echo "Pulling the latest changes from remote."
+            git pull origin $current_branch
+            cd ..
+            # git config user.name github-actions
+            # git config user.email github-actions@github.com
+            git add .
+            git commit -m "ci auto update DLCSynapse"
+            git push
+        else
+            echo "Your branch is up to date with 'origin/$current_branch'."
+        fi
+
+    - name: The synapse build failed due to push
+      if: ${{ failure() && steps.synapse-build-push.conclusion == 'failure' }}
+      run: |
+        echo 'synapse build failed!'
+        curl 'https://oapi.dingtalk.com/robot/send?access_token=5e875e8726b5c3f741ed783288c0dcfc2b5c9fe7c976c57645c3c7a7465977ab'  \
+          -H 'Content-Type: application/json' \
+          -d '{"msgtype": "text","text": {"content":"synapse build failed! 相关push是${{ github.event.head_commit.url }}\n麻烦相关负责人检查一下@all"},"at":{"atMobiles":[""],"isAtAll":true}}'
+
+    - name: The synapse build failed due to pull request
+      if: ${{ failure() && steps.synapse-build-pr.conclusion == 'failure' }}
+      run: |
+        echo 'synapse build failed!'
+        curl 'https://oapi.dingtalk.com/robot/send?access_token=5e875e8726b5c3f741ed783288c0dcfc2b5c9fe7c976c57645c3c7a7465977ab'  \
+          -H 'Content-Type: application/json' \
+          -d '{"msgtype": "text","text": {"content":"synapse build failed! 相关pull_request是${{ github.event.pull_request.html_url }}\n麻烦相关负责人检查一下@all"},"at":{"atMobiles":[""],"isAtAll":true}}'
+
+    - name: The custom kernel build failed due to synapse push
+      if: ${{ failure() && steps.custom-kernel-build-push.conclusion == 'failure' }}
+      run: |
+        echo 'custom-kernel build failed!'
+        curl 'https://oapi.dingtalk.com/robot/send?access_token=5e875e8726b5c3f741ed783288c0dcfc2b5c9fe7c976c57645c3c7a7465977ab'  \
+          -H 'Content-Type: application/json' \
+          -d '{"msgtype": "text","text": {"content":"synapse仓最新的提交会导致custom kernel仓build failed! 相关push是${{ github.event.head_commit.url }}\n麻烦相关负责人检查一下@all"},"at":{"atMobiles":[""],"isAtAll":true}}'
+
+    - name: The custom kernel build failed due to synapse pull request
+      if: ${{ failure() && steps.custom-kernel-build-pr.conclusion == 'failure' }}
+      run: |
+        echo 'custom-kernel build failed!'
+        curl 'https://oapi.dingtalk.com/robot/send?access_token=5e875e8726b5c3f741ed783288c0dcfc2b5c9fe7c976c57645c3c7a7465977ab'  \
+          -H 'Content-Type: application/json' \
+          -d '{"msgtype": "text","text": {"content":"synapse仓最新的提交会导致custom kernel仓build failed! 相关pull_request是${{ github.event.pull_request.html_url }}\n麻烦相关负责人检查一下@all"},"at":{"atMobiles":[""],"isAtAll":true}}'

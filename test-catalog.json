@@ -1,0 +1,332 @@
+[
+  {
+    "scope": "private",
+    "repo": "synapse",
+    "workflow": "ai_code_review.yml",
+    "job": "pr-agent-event",
+    "id": "synapse.ai_code_review.pr-agent-event",
+    "source_sha": "acfe7ff8b51d2fe6391301af0eb5b159720f3a21",
+    "matrix": {
+      "replica_case": [
+        "default"
+      ]
+    },
+    "needs": []
+  },
+  {
+    "scope": "private",
+    "repo": "synapse",
+    "workflow": "ai_code_review.yml",
+    "job": "pr-agent-dispatch",
+    "id": "synapse.ai_code_review.pr-agent-dispatch",
+    "source_sha": "acfe7ff8b51d2fe6391301af0eb5b159720f3a21",
+    "matrix": {
+      "replica_case": [
+        "default"
+      ]
+    },
+    "needs": []
+  },
+  {
+    "scope": "private",
+    "repo": "synapse",
+    "workflow": "build.yml",
+    "job": "build_DLCSynapse",
+    "id": "synapse.build.build_DLCSynapse",
+    "source_sha": "acfe7ff8b51d2fe6391301af0eb5b159720f3a21",
+    "matrix": {
+      "replica_case": [
+        "default"
+      ]
+    },
+    "needs": []
+  },
+  {
+    "scope": "public",
+    "repo": "synapse",
+    "workflow": "build_Pseudo_DLC.yml",
+    "job": "call-arsenal-pseudo-test",
+    "id": "synapse.build_Pseudo_DLC.call-arsenal-pseudo-test",
+    "source_sha": "acfe7ff8b51d2fe6391301af0eb5b159720f3a21",
+    "matrix": {
+      "replica_case": [
+        "default"
+      ]
+    },
+    "needs": []
+  },
+  {
+    "scope": "private",
+    "repo": "synapse",
+    "workflow": "cancel_ci_on_closed_pr.yml",
+    "job": "prepare-workflows",
+    "id": "synapse.cancel_ci_on_closed_pr.prepare-workflows",
+    "source_sha": "acfe7ff8b51d2fe6391301af0eb5b159720f3a21",
+    "matrix": {
+      "replica_case": [
+        "default"
+      ]
+    },
+    "needs": []
+  },
+  {
+    "scope": "private",
+    "repo": "synapse",
+    "workflow": "cancel_ci_on_closed_pr.yml",
+    "job": "cancel-running-ci",
+    "id": "synapse.cancel_ci_on_closed_pr.cancel-running-ci",
+    "source_sha": "acfe7ff8b51d2fe6391301af0eb5b159720f3a21",
+    "matrix": {
+      "replica_case": [
+        "default"
+      ]
+    },
+    "needs": [
+      "prepare-workflows"
+    ]
+  },
+  {
+    "scope": "public",
+    "repo": "synapse",
+    "workflow": "ci_router.yml",
+    "job": "route",
+    "id": "synapse.ci_router.route",
+    "source_sha": "acfe7ff8b51d2fe6391301af0eb5b159720f3a21",
+    "matrix": {
+      "replica_case": [
+        "default"
+      ]
+    },
+    "needs": []
+  },
+  {
+    "scope": "public",
+    "repo": "synapse",
+    "workflow": "ci_router.yml",
+    "job": "prechecks",
+    "id": "synapse.ci_router.prechecks",
+    "source_sha": "acfe7ff8b51d2fe6391301af0eb5b159720f3a21",
+    "matrix": {
+      "replica_case": [
+        "default"
+      ]
+    },
+    "needs": []
+  },
+  {
+    "scope": "public",
+    "repo": "synapse",
+    "workflow": "ci_router.yml",
+    "job": "run_arc_multirepo",
+    "id": "synapse.ci_router.run_arc_multirepo",
+    "source_sha": "acfe7ff8b51d2fe6391301af0eb5b159720f3a21",
+    "matrix": {
+      "replica_case": [
+        "default"
+      ]
+    },
+    "needs": [
+      "route",
+      "prechecks"
+    ]
+  },
+  {
+    "scope": "public",
+    "repo": "synapse",
+    "workflow": "ci_router.yml",
+    "job": "run_driver_multirepo",
+    "id": "synapse.ci_router.run_driver_multirepo",
+    "source_sha": "acfe7ff8b51d2fe6391301af0eb5b159720f3a21",
+    "matrix": {
+      "replica_case": [
+        "default"
+      ]
+    },
+    "needs": [
+      "route",
+      "prechecks"
+    ]
+  },
+  {
+    "scope": "public",
+    "repo": "synapse",
+    "workflow": "ci_router.yml",
+    "job": "run_pseudo",
+    "id": "synapse.ci_router.run_pseudo",
+    "source_sha": "acfe7ff8b51d2fe6391301af0eb5b159720f3a21",
+    "matrix": {
+      "replica_case": [
+        "default"
+      ]
+    },
+    "needs": [
+      "route",
+      "prechecks"
+    ]
+  },
+  {
+    "scope": "public",
+    "repo": "synapse",
+    "workflow": "ci_router.yml",
+    "job": "aggregate",
+    "id": "synapse.ci_router.aggregate",
+    "source_sha": "acfe7ff8b51d2fe6391301af0eb5b159720f3a21",
+    "matrix": {
+      "replica_case": [
+        "default"
+      ]
+    },
+    "needs": [
+      "route",
+      "prechecks",
+      "run_arc_multirepo",
+      "run_driver_multirepo",
+      "run_pseudo"
+    ]
+  },
+  {
+    "scope": "private",
+    "repo": "synapse",
+    "workflow": "custom_kernel_build.yml",
+    "job": "build_DLCSynapse",
+    "id": "synapse.custom_kernel_build.build_DLCSynapse",
+    "source_sha": "acfe7ff8b51d2fe6391301af0eb5b159720f3a21",
+    "matrix": {
+      "replica_case": [
+        "default"
+      ]
+    },
+    "needs": []
+  },
+  {
+    "scope": "private",
+    "repo": "synapse",
+    "workflow": "dingding_robot.yml",
+    "job": "build-success",
+    "id": "synapse.dingding_robot.build-success",
+    "source_sha": "acfe7ff8b51d2fe6391301af0eb5b159720f3a21",
+    "matrix": {
+      "replica_case": [
+        "default"
+      ]
+    },
+    "needs": []
+  },
+  {
+    "scope": "private",
+    "repo": "synapse",
+    "workflow": "dingding_robot.yml",
+    "job": "build-failed",
+    "id": "synapse.dingding_robot.build-failed",
+    "source_sha": "acfe7ff8b51d2fe6391301af0eb5b159720f3a21",
+    "matrix": {
+      "replica_case": [
+        "default"
+      ]
+    },
+    "needs": []
+  },
+  {
+    "scope": "private",
+    "repo": "synapse",
+    "workflow": "driver_api_guard.yml",
+    "job": "driver_api_guard",
+    "id": "synapse.driver_api_guard.driver_api_guard",
+    "source_sha": "acfe7ff8b51d2fe6391301af0eb5b159720f3a21",
+    "matrix": {
+      "replica_case": [
+        "default"
+      ]
+    },
+    "needs": []
+  },
+  {
+    "scope": "private",
+    "repo": "synapse",
+    "workflow": "driver_api_guard.yml",
+    "job": "refresh_open_pr_guards",
+    "id": "synapse.driver_api_guard.refresh_open_pr_guards",
+    "source_sha": "acfe7ff8b51d2fe6391301af0eb5b159720f3a21",
+    "matrix": {
+      "replica_case": [
+        "default"
+      ]
+    },
+    "needs": []
+  },
+  {
+    "scope": "private",
+    "repo": "synapse",
+    "workflow": "release-tag.yml",
+    "job": "release",
+    "id": "synapse.release-tag.release",
+    "source_sha": "acfe7ff8b51d2fe6391301af0eb5b159720f3a21",
+    "matrix": {
+      "replica_case": [
+        "default"
+      ]
+    },
+    "needs": []
+  },
+  {
+    "scope": "private",
+    "repo": "synapse",
+    "workflow": "test_on_tpu.yml",
+    "job": "pre-checks",
+    "id": "synapse.test_on_tpu.pre-checks",
+    "source_sha": "acfe7ff8b51d2fe6391301af0eb5b159720f3a21",
+    "matrix": {
+      "replica_case": [
+        "default"
+      ]
+    },
+    "needs": []
+  },
+  {
+    "scope": "private",
+    "repo": "synapse",
+    "workflow": "test_on_tpu.yml",
+    "job": "call-singlecard",
+    "id": "synapse.test_on_tpu.call-singlecard",
+    "source_sha": "acfe7ff8b51d2fe6391301af0eb5b159720f3a21",
+    "matrix": {
+      "replica_case": [
+        "default"
+      ]
+    },
+    "needs": [
+      "pre-checks"
+    ]
+  },
+  {
+    "scope": "public",
+    "repo": "joint",
+    "workflow": "joint-triad",
+    "job": "public-smoke",
+    "id": "joint.triad.public-smoke",
+    "matrix": {
+      "profile": [
+        "default",
+        "negative-contract"
+      ]
+    },
+    "needs": [
+      "driver",
+      "synapse",
+      "sim"
+    ]
+  },
+  {
+    "scope": "private",
+    "repo": "synapse",
+    "workflow": "joint-triad",
+    "job": "private-contract",
+    "id": "joint.synapse.private-contract",
+    "matrix": {
+      "case": [
+        "default"
+      ]
+    },
+    "needs": []
+  }
+]

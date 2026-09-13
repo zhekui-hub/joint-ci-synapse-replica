@@ -1,0 +1,61 @@
+name: Cancel CI when PR closed [replica dry-run]
+'on':
+  pull_request:
+    types:
+    - closed
+  workflow_dispatch: null
+permissions:
+  contents: read
+  actions: read
+env:
+  REPLICA_SOURCE_SHA: acfe7ff8b51d2fe6391301af0eb5b159720f3a21
+  REPLICA_TEST_MODE: dry-run
+jobs:
+  prepare-workflows:
+    name: prepare-workflows [simulated]
+    if: ${{ always() }}
+    runs-on:
+    - self-hosted
+    - replica-synapse
+    strategy:
+      fail-fast: false
+      matrix:
+        replica_case:
+        - default
+    env:
+      REPLICA_REPOSITORY: synapse
+      REPLICA_SOURCE_WORKFLOW: cancel_ci_on_closed_pr.yml
+      REPLICA_SOURCE_JOB: prepare-workflows
+      REPLICA_SCOPE: private
+      SIMULATE_FAILURE: ${{ inputs.simulate_failure || vars.SIMULATE_FAILURE || ''
+        }}
+      MATRIX_JSON: ${{ toJson(matrix) }}
+    steps:
+    - name: Simulate source job contract
+      shell: python
+      run: python ci_sim/runner.py
+  cancel-running-ci:
+    name: cancel-running-ci [simulated]
+    needs:
+    - prepare-workflows
+    if: ${{ always() }}
+    runs-on:
+    - self-hosted
+    - replica-synapse
+    strategy:
+      fail-fast: false
+      matrix:
+        replica_case:
+        - default
+    env:
+      REPLICA_REPOSITORY: synapse
+      REPLICA_SOURCE_WORKFLOW: cancel_ci_on_closed_pr.yml
+      REPLICA_SOURCE_JOB: cancel-running-ci
+      REPLICA_SCOPE: private
+      SIMULATE_FAILURE: ${{ inputs.simulate_failure || vars.SIMULATE_FAILURE || ''
+        }}
+      MATRIX_JSON: ${{ toJson(matrix) }}
+    steps:
+    - name: Simulate source job contract
+      shell: python
+      run: python ci_sim/runner.py

@@ -1,0 +1,56 @@
+name: dingding robot [replica dry-run]
+'on':
+  workflow_dispatch: null
+permissions:
+  contents: read
+  actions: read
+env:
+  REPLICA_SOURCE_SHA: acfe7ff8b51d2fe6391301af0eb5b159720f3a21
+  REPLICA_TEST_MODE: dry-run
+jobs:
+  build-success:
+    name: build-success [simulated]
+    if: ${{ always() }}
+    runs-on:
+    - self-hosted
+    - replica-synapse
+    strategy:
+      fail-fast: false
+      matrix:
+        replica_case:
+        - default
+    env:
+      REPLICA_REPOSITORY: synapse
+      REPLICA_SOURCE_WORKFLOW: dingding_robot.yml
+      REPLICA_SOURCE_JOB: build-success
+      REPLICA_SCOPE: private
+      SIMULATE_FAILURE: ${{ inputs.simulate_failure || vars.SIMULATE_FAILURE || ''
+        }}
+      MATRIX_JSON: ${{ toJson(matrix) }}
+    steps:
+    - name: Simulate source job contract
+      shell: python
+      run: python ci_sim/runner.py
+  build-failed:
+    name: build-failed [simulated]
+    if: ${{ always() }}
+    runs-on:
+    - self-hosted
+    - replica-synapse
+    strategy:
+      fail-fast: false
+      matrix:
+        replica_case:
+        - default
+    env:
+      REPLICA_REPOSITORY: synapse
+      REPLICA_SOURCE_WORKFLOW: dingding_robot.yml
+      REPLICA_SOURCE_JOB: build-failed
+      REPLICA_SCOPE: private
+      SIMULATE_FAILURE: ${{ inputs.simulate_failure || vars.SIMULATE_FAILURE || ''
+        }}
+      MATRIX_JSON: ${{ toJson(matrix) }}
+    steps:
+    - name: Simulate source job contract
+      shell: python
+      run: python ci_sim/runner.py

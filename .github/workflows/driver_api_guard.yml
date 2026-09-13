@@ -1,0 +1,59 @@
+name: Driver API Guard [replica dry-run]
+'on':
+  pull_request:
+    branches:
+    - main
+  workflow_dispatch: null
+permissions:
+  contents: read
+  actions: read
+env:
+  REPLICA_SOURCE_SHA: acfe7ff8b51d2fe6391301af0eb5b159720f3a21
+  REPLICA_TEST_MODE: dry-run
+jobs:
+  driver_api_guard:
+    name: Check Synapse API change window [simulated]
+    if: ${{ always() }}
+    runs-on:
+    - self-hosted
+    - replica-synapse
+    strategy:
+      fail-fast: false
+      matrix:
+        replica_case:
+        - default
+    env:
+      REPLICA_REPOSITORY: synapse
+      REPLICA_SOURCE_WORKFLOW: driver_api_guard.yml
+      REPLICA_SOURCE_JOB: driver_api_guard
+      REPLICA_SCOPE: private
+      SIMULATE_FAILURE: ${{ inputs.simulate_failure || vars.SIMULATE_FAILURE || ''
+        }}
+      MATRIX_JSON: ${{ toJson(matrix) }}
+    steps:
+    - name: Simulate source job contract
+      shell: python
+      run: python ci_sim/runner.py
+  refresh_open_pr_guards:
+    name: Refresh open PR API guards [simulated]
+    if: ${{ always() }}
+    runs-on:
+    - self-hosted
+    - replica-synapse
+    strategy:
+      fail-fast: false
+      matrix:
+        replica_case:
+        - default
+    env:
+      REPLICA_REPOSITORY: synapse
+      REPLICA_SOURCE_WORKFLOW: driver_api_guard.yml
+      REPLICA_SOURCE_JOB: refresh_open_pr_guards
+      REPLICA_SCOPE: private
+      SIMULATE_FAILURE: ${{ inputs.simulate_failure || vars.SIMULATE_FAILURE || ''
+        }}
+      MATRIX_JSON: ${{ toJson(matrix) }}
+    steps:
+    - name: Simulate source job contract
+      shell: python
+      run: python ci_sim/runner.py

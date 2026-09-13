@@ -1,0 +1,57 @@
+name: Joint CI participant replica
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      joint_id:
+        required: false
+        default: replica-manual
+      joint_wait:
+        required: false
+        default: 'true'
+      depends_on_json:
+        required: false
+        default: '{}'
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  independent-contract:
+    name: Independent contract [simulated]
+    runs-on: [self-hosted, replica-synapse]
+    strategy:
+      fail-fast: false
+      matrix:
+        case: [default, negative-contract]
+    env:
+      synapse_REPOSITORY: synapse
+      synapse_SOURCE_WORKFLOW: joint_ci_hook
+      synapse_SOURCE_JOB: independent-contract
+      synapse_SCOPE: private
+      MATRIX_JSON: ${{ toJson(matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: python ci_sim/runner.py
+
+  joint-report:
+    name: Joint report [simulated]
+    needs: independent-contract
+    if: ${{ always() }}
+    runs-on: [self-hosted, replica-synapse]
+    env:
+      synapse_REPOSITORY: synapse
+      JOINT_CI_ID: ${{ inputs.joint_id || 'replica-pr' }}
+      JOINT_WAIT: ${{ inputs.joint_wait || 'true' }}
+      JOINT_DEPS_JSON: ${{ inputs.depends_on_json || '{}' }}
+      synapse_SOURCE_WORKFLOW: joint_ci_hook
+      synapse_SOURCE_JOB: joint-report
+      synapse_SCOPE: public
+      GITHUB_HEAD_REF: ${{ github.head_ref || github.ref_name }}
+      GITHUB_SHA: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: python ci_sim/participant_report.py

@@ -1,0 +1,211 @@
+name: Synapse PR CI Router
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened, edited]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  route:
+    uses: ChipLTech/arsenal/.github/workflows/ci_router_external_repo.yml@main
+    with:
+      repository_kind: DLCSynapse
+      base_sha: ${{ github.event.pull_request.base.sha }}
+      head_sha: ${{ github.event.pull_request.head.sha }}
+      pull_request_body: ${{ github.event.pull_request.body || '' }}
+
+  prechecks:
+    runs-on: arc-runner-ci-router
+    steps:
+      - name: Checkout Synapse repository
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git fetch --no-tags --depth=1 origin "$HEAD_SHA" "$BASE_SHA"
+          git checkout --force --detach "$HEAD_SHA"
+          actual_head="$(git rev-parse HEAD)"
+          if [[ "$actual_head" != "$HEAD_SHA" ]]; then
+            echo "Synapse checkout mismatch: expected ${HEAD_SHA}, got ${actual_head}" >&2
+            exit 1
+          fi
+          echo "Checked out Synapse repository: ${actual_head}"
+
+      - name: Check branch commit message
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/check_cm.py
+
+      - name: Install format check dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo_cmd=()
+          if [[ "$(id -u)" -ne 0 ]]; then
+            sudo_cmd=(sudo)
+          fi
+          "${sudo_cmd[@]}" apt-get update
+          "${sudo_cmd[@]}" apt-get install -y --no-install-recommends python3 python3-venv python3-pip python-is-python3
+          "${sudo_cmd[@]}" apt-get install -y --no-install-recommends cppcheck gcc
+
+      - name: Run pre-commit checks on changed files
+        shell: bash
+        env:
+          BASE_REPOSITORY: ${{ github.event.pull_request.base.repo.full_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PRE_COMMIT_HOME: ${{ runner.temp }}/pre-commit-cache/DLCSynapse
+        run: |
+          set -euo pipefail
+
+          if ! git cat-file -e "${HEAD_SHA}^{commit}" 2>/dev/null; then
+            echo "HEAD_SHA=${HEAD_SHA} is not available in the checkout" >&2
+            exit 1
+          fi
+          if ! git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
+            echo "BASE_SHA=${BASE_SHA} could not be fetched from ${BASE_REPOSITORY}" >&2
+            exit 1
+          fi
+
+          changed_files=()
+          while IFS= read -r -d '' changed_file; do
+            changed_files+=("$changed_file")
+          done < <(git diff --name-only --diff-filter=ACMRT -z "$BASE_SHA" "$HEAD_SHA")
+          if ((${#changed_files[@]} == 0)); then
+            echo "No changed files to check."
+            exit 0
+          fi
+          printf 'Changed files for pre-commit:\n'
+          printf ' - %s\n' "${changed_files[@]}"
+
+          pre_commit_venv="${RUNNER_TEMP}/pre-commit-venv"
+          python3 -m venv "$pre_commit_venv"
+          "$pre_commit_venv/bin/python" -m pip install pre-commit==3.7.1
+          "$pre_commit_venv/bin/python" -m pre_commit run --files "${changed_files[@]}" --show-diff-on-failure
+
+  run_arc_multirepo:
+    needs: [route, prechecks]
+    if: ${{ needs.route.outputs.run_arc_multirepo == 'true' }}
+    uses: ChipLTech/arsenal/.github/workflows/ARC_MultiRepo_runtest.yml@main
+    with:
+      is_pr: true
+      pull_request_body: |
+        DLC_SYNAPSE_BRANCH=${{ github.head_ref }}
+        ${{ github.event.pull_request.body }}
+      concurrency_suffix: dlcsynapse-ci-${{ github.run_id }}
+    secrets: inherit
+
+  run_driver_multirepo:
+    needs: [route, prechecks]
+    if: ${{ needs.route.outputs.run_driver_multirepo == 'true' }}
+    uses: ChipLTech/arsenal/.github/workflows/MultiRepo_runtest.yml@main
+    with:
+      test_scope: both
+      caller_repo: DLCSynapse
+      pull_request_body: |
+        DLC_SYNAPSE_BRANCH=${{ github.head_ref }}
+        ${{ github.event.pull_request.body }}
+      concurrency_suffix: dlcsynapse-ci-${{ github.run_id }}
+    secrets: inherit
+
+  run_pseudo:
+    needs: [route, prechecks]
+    if: ${{ needs.route.outputs.run_pseudo == 'true' }}
+    uses: ChipLTech/arsenal/.github/workflows/Pseudo_test.yml@main
+    with:
+      is_pr: true
+      caller_repo: DLCSynapse
+      pull_request_body: |
+        DLC_SYNAPSE_BRANCH=${{ github.head_ref }}
+        ${{ github.event.pull_request.body }}
+      concurrency_suffix: dlcsynapse-pseudo-${{ github.run_id }}
+
+  aggregate:
+    name: Synapse CI aggregate
+    needs:
+      - route
+      - prechecks
+      - run_arc_multirepo
+      - run_driver_multirepo
+      - run_pseudo
+    if: ${{ always() }}
+    runs-on: arc-runner-ci-router
+    steps:
+      - name: Evaluate routed CI results
+        shell: bash
+        env:
+          ROUTE_RESULT: ${{ needs.route.result }}
+          PRECHECKS_RESULT: ${{ needs.prechecks.result }}
+          RUN_ARC_MULTIREPO_EXPECTED: ${{ needs.route.outputs.run_arc_multirepo }}
+          RUN_ARC_MULTIREPO_RESULT: ${{ needs.run_arc_multirepo.result }}
+          RUN_ARC_MULTIREPO_FINAL_STATUS: ${{ needs.run_arc_multirepo.outputs.final_status }}
+          RUN_DRIVER_MULTIREPO_EXPECTED: ${{ needs.route.outputs.run_driver_multirepo }}
+          RUN_DRIVER_MULTIREPO_RESULT: ${{ needs.run_driver_multirepo.result }}
+          RUN_PSEUDO_EXPECTED: ${{ needs.route.outputs.run_pseudo }}
+          RUN_PSEUDO_RESULT: ${{ needs.run_pseudo.result }}
+          ROUTING_CLASS: ${{ needs.route.outputs.routing_class }}
+        run: |
+          set -euo pipefail
+
+          failures=()
+
+          check_required() {
+            local workflow="$1"
+            local result="$2"
+            if [[ "$result" != "success" ]]; then
+              failures+=("${workflow} expected success, got ${result}")
+            fi
+          }
+
+          check_routed() {
+            local workflow="$1"
+            local expected="$2"
+            local result="$3"
+            local final_status="${4:-}"
+
+            if [[ "$expected" != "true" && "$expected" != "false" ]]; then
+              failures+=("${workflow} expected a boolean routing decision, got ${expected:-<empty>}")
+              return
+            fi
+            if [[ "$expected" == "true" ]]; then
+              local effective_result="$result"
+              case "$result" in
+                success|failure)
+                  if [[ -n "$final_status" ]]; then
+                    effective_result="$final_status"
+                  fi
+                  ;;
+              esac
+              if [[ "$effective_result" != "success" ]]; then
+                failures+=("${workflow} expected success, got result=${result}, final_status=${final_status:-<empty>}")
+              fi
+            fi
+            if [[ "$expected" == "false" && "$result" != "skipped" ]]; then
+              failures+=("${workflow} expected skipped, got ${result}")
+            fi
+          }
+
+          echo "Routing class: ${ROUTING_CLASS:-unknown}"
+
+          check_required "route / determine_external" "$ROUTE_RESULT"
+          check_required "prechecks" "$PRECHECKS_RESULT"
+          check_routed "run_arc_multirepo / ARC_MultiRepo_runtest.yml" "$RUN_ARC_MULTIREPO_EXPECTED" "$RUN_ARC_MULTIREPO_RESULT" "$RUN_ARC_MULTIREPO_FINAL_STATUS"
+          check_routed "run_driver_multirepo / MultiRepo_runtest.yml" "$RUN_DRIVER_MULTIREPO_EXPECTED" "$RUN_DRIVER_MULTIREPO_RESULT"
+          check_routed "run_pseudo / Pseudo_test.yml" "$RUN_PSEUDO_EXPECTED" "$RUN_PSEUDO_RESULT"
+
+          if ((${#failures[@]} > 0)); then
+            printf 'Routed CI failed:\n' >&2
+            printf ' - %s\n' "${failures[@]}" >&2
+            exit 1
+          fi
+
+          echo "Routed CI passed."

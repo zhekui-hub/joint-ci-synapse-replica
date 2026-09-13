@@ -1,0 +1,33 @@
+name: Cancel CI when PR closed
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  prepare-workflows:
+    runs-on: arc-runner-ci-router
+    outputs:
+      workflows: ${{ steps.collect.outputs.workflows }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: collect
+        run: |
+          set -euo pipefail
+          files=$(ls .github/workflows/*.yml | sed 's!.github/workflows/!!')
+          {
+            echo 'workflows<<EOF'
+            printf '%s\n' "$files"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+  cancel-running-ci:
+    needs: prepare-workflows
+    permissions:
+      actions: write
+      pull-requests: read
+    uses: ChipLTech/arsenal/.github/workflows/cancel_ci_on_closed_pr.yml@main
+    with:
+      head_ref: ${{ github.event.pull_request.head.ref }}
+      workflows: ${{ needs.prepare-workflows.outputs.workflows }}

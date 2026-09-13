@@ -1,0 +1,23 @@
+name: dingding robot
+
+on:
+  workflow_run:
+    workflows: [build DLCSynapse]
+    types: [completed]
+
+jobs:
+  build-success:     
+    runs-on: self-hosted     
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}     
+    steps:       
+      - run: echo 'Build success!'
+
+  build-failed:
+    runs-on: self-hosted
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    steps:
+    - run: |
+        echo 'Build failed!'
+        curl 'https://oapi.dingtalk.com/robot/send?access_token=5e875e8726b5c3f741ed783288c0dcfc2b5c9fe7c976c57645c3c7a7465977ab'  \
+          -H 'Content-Type: application/json' \
+          -d '{"msgtype": "text","text": {"content":"DLCSynapse build failed! \n麻烦相关负责人检查一下@all"},"at":{"atMobiles":[""],"isAtAll":true}}'

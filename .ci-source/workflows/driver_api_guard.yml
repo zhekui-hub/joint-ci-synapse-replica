@@ -1,0 +1,130 @@
+name: Driver API Guard
+
+on:
+  pull_request:
+    branches:
+      - main
+  schedule:
+    # Asia/Shanghai 19:05.
+    - cron: "5 11 * * *"
+
+jobs:
+  driver_api_guard:
+    if: ${{ github.event_name == 'pull_request' }}
+    name: Check Synapse API change window
+    permissions:
+      contents: read
+    uses: ChipLTech/arsenal/.github/workflows/driver_api_guard.yml@main
+    with:
+      current_kind: DLCSynapse
+      base_sha: ${{ github.event.pull_request.base.sha }}
+      head_sha: ${{ github.event.pull_request.head.sha }}
+
+  refresh_open_pr_guards:
+    if: ${{ github.event_name == 'schedule' }}
+    name: Refresh open PR API guards
+    runs-on: arc-runner-ci-router
+    timeout-minutes: 10
+    permissions:
+      actions: write
+      contents: read
+      pull-requests: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      BASE_BRANCH: main
+      WORKFLOW_FILE: driver_api_guard.yml
+    steps:
+      - name: Refresh guard for open PRs
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          refresh_once() {
+            local pass_label="$1"
+            local refresh_list="${RUNNER_TEMP}/driver-api-guard-refresh-${pass_label}.tsv"
+            local prs_file="${refresh_list%.tsv}.json"
+
+            gh api --paginate --slurp --method GET "repos/${GH_REPO}/pulls" \
+              -f state=open \
+              -f "base=${BASE_BRANCH}" \
+              -f per_page=100 > "${prs_file}"
+            PRS_FILE="${prs_file}" python3 - <<'PY' > "${refresh_list}"
+          import json
+          import os
+          import sys
+
+          repo = os.environ["GH_REPO"]
+          with open(os.environ["PRS_FILE"], encoding="utf-8") as file:
+              pages = json.load(file)
+
+          for page in pages:
+              for pr in page:
+                  head = pr.get("head") or {}
+                  head_repo = head.get("repo") or {}
+                  if head_repo.get("full_name") != repo:
+                      print(f"skip-cross-repo\t{pr['number']}\t{head.get('ref', '')}", file=sys.stderr)
+                      continue
+                  print(
+                      "\t".join(
+                          [
+                              str(pr["number"]),
+                              head["ref"],
+                              head["sha"],
+                          ]
+                      )
+                  )
+          PY
+
+            if [[ ! -s "${refresh_list}" ]]; then
+              echo "No same-repository open PRs require Driver API Guard refresh."
+              return 0
+            fi
+
+            rerun_failures=0
+            while IFS=$'\t' read -r pr_number head_ref head_sha; do
+              echo "Refreshing Driver API Guard for PR #${pr_number}: ${head_ref}@${head_sha}"
+              runs_json="$(gh api --method GET "repos/${GH_REPO}/actions/workflows/${WORKFLOW_FILE}/runs" \
+                -f "branch=${head_ref}" \
+                -f "head_sha=${head_sha}" \
+                -f event=pull_request \
+                -f per_page=20)"
+              run_record="$(RUNS_JSON="${runs_json}" PR_NUMBER="${pr_number}" python3 - <<'PY'
+          import json
+          import os
+
+          target_pr_number = int(os.environ["PR_NUMBER"])
+          runs = json.loads(os.environ["RUNS_JSON"]).get("workflow_runs", [])
+          for run in runs:
+              if run.get("event") != "pull_request":
+                  continue
+              associated_prs = run.get("pull_requests") or []
+              if not any(pr.get("number") == target_pr_number for pr in associated_prs):
+                  continue
+              print(f"{run['id']}\t{run['status']}")
+              break
+          PY
+            )"
+              if [[ -z "${run_record}" ]]; then
+                echo "No prior Driver API Guard pull_request run found for PR #${pr_number}; skipping refresh." >&2
+                continue
+              fi
+              IFS=$'\t' read -r run_id run_status <<< "${run_record}"
+              if [[ "${run_status}" != "completed" ]]; then
+                echo "Driver API Guard run ${run_id} for PR #${pr_number} is ${run_status}; skip rerun."
+                continue
+              fi
+              if ! gh api --method POST "repos/${GH_REPO}/actions/runs/${run_id}/rerun"; then
+                echo "Failed to rerun Driver API Guard run ${run_id} for PR #${pr_number}." >&2
+                rerun_failures=$((rerun_failures + 1))
+                continue
+              fi
+            done < "${refresh_list}"
+
+            if ((rerun_failures > 0)); then
+              echo "Failed to rerun ${rerun_failures} Driver API Guard run(s)." >&2
+              return 1
+            fi
+          }
+
+          refresh_once "1905"

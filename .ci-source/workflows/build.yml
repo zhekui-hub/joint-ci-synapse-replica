@@ -1,0 +1,482 @@
+name: DLCSynapse build
+
+on:
+  push:
+    branches:
+    # Use the default main branch, if the name of the main branch changed, you should change the name here.
+    - main
+
+  pull_request:
+    branches:
+    # Use the default main branch, if the name of the main branch changed, you should change the name here.
+    - main
+
+env:
+  LLVM_PATH: ${{github.workspace}}/../../LLVM/LLVM
+  DLCSIM_PATH: ${{github.workspace}}/../../DLCsim/DLCsim
+  SYNAP_PATH: ${{github.workspace}}/../../DLCSynapse/DLCSynapse
+  DLC_IREETOOL_PATH: ${{github.workspace}}/../iree-build/tools/
+  DLC_LIBDEVICE: ${{github.workspace}}/../../DLC_libdevice/
+  DLC_LIBTORCH: ${{github.workspace}}/../../libtorch
+  DLCTHK_INCLUDE_DIR: ${{github.workspace}}/../../dlc-thunk/
+  # if the name of the main branch changed, you should change the name here.
+  # temporarily we only consider the following repos
+  LLVM_CI_BRANCH: update-4dc34b
+  DLC_CUSTOM_KERNEL_CI_BRANCH: develop
+  DLC_SYNAPSE_CI_BRANCH: main
+  DLC_SIM_CI_BRANCH: main
+  DLC_THUNK_CI_BRANCH: master
+  DLC_KERNEL_DRIVER_CI_BRANCH: master
+  DLC_CL_CI_BRANCH: inc_nsteps
+  PYTORCH_CI_BRANCH: release_25
+  VLLM_CI_BRANCH: update-58d1b2
+  IREE_CI_BRANCH: main-dlc
+
+jobs:
+  build_DLCSynapse:
+    # The CMake configure and build commands are platform agnostic and should work equally
+    # well on Windows or Mac.  You can convert this to a matrix build if you need
+    # cross-platform coverage.
+    # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
+    runs-on: [self-hosted, 192.168.2.214]
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: check branch commit message
+      if: ${{github.event_name == 'pull_request'}}
+      id: check-cm
+      run: |
+        python3 .github/scripts/check_cm.py remote
+
+    - name: Update Packages
+      run: |
+          apt-get update
+          apt-get upgrade -y
+          apt-get install -y python3 python3-venv python3-pip python-is-python3
+          apt-get install -y cppcheck cpplint gcc
+          apt-get install -y libhugetlbfs-dev
+
+    - name: check branch dependency
+      if: ${{github.event_name == 'pull_request'}}
+      id: get-dependency
+      run: |
+        echo "${{github.event.pull_request.body}}" > /tmp/pr.txt
+        cat /tmp/pr.txt | grep "="
+        cat /tmp/pr.txt | grep "=" >> $GITHUB_OUTPUT
+
+    - name: repo checkout
+      if: ${{github.event.pull_request.body != ''}}
+      env: 
+        LLVM_BRANCH: ${{steps.get-dependency.outputs.LLVM_BRANCH}}
+        DLC_CUSTOM_KERNEL_BRANCH: ${{steps.get-dependency.outputs.DLC_CUSTOM_KERNEL_BRANCH}}
+        DLC_SIM_BRANCH: ${{steps.get-dependency.outputs.DLC_SIM_BRANCH}}
+        DLC_THUNK_BRANCH: ${{steps.get-dependency.outputs.DLC_THUNK_BRANCH}}
+        DLC_CL_BRANCH: ${{steps.get-dependency.outputs.DLC_CL_BRANCH}}
+        DLC_KERNEL_DRIVER_BRANCH: ${{steps.get-dependency.outputs.DLC_KERNEL_DRIVER_BRANCH}}
+        PYTORCH_BRANCH: ${{steps.get-dependency.outputs.PYTORCH_BRANCH}}
+        VLLM_BRANCH: ${{steps.get-dependency.outputs.VLLM_BRANCH}}
+        IREE_BRANCH: ${{steps.get-dependency.outputs.IREE_BRANCH}}
+      run: |
+        if ! echo $LLVM_BRANCH | grep -q "DEFAULT_BRANCH"; then
+          echo "this pull request depends on LLVM"
+          echo $LLVM_BRANCH
+          cd ${{github.workspace}}/../../LLVM/LLVM
+          git fetch
+          git checkout $(echo $LLVM_BRANCH | sed 's/[^a-zA-Z0-9_-]//g')
+          rm -rf build
+          ./build.sh
+        else 
+          cd ${{github.workspace}}/../../LLVM/LLVM
+          git checkout $LLVM_CI_BRANCH
+          git pull --rebase
+        fi
+        
+        if ! echo $DLC_CUSTOM_KERNEL_BRANCH | grep -q "DEFAULT_BRANCH"; then
+          echo "this pull request depends on DLC_Custom_Kernel"
+          echo $DLC_CUSTOM_KERNEL_BRANCH
+          cd ${{github.workspace}}/../../DLC_Custom_Kernel/DLC_Custom_Kernel
+          git fetch
+          git checkout $(echo $DLC_CUSTOM_KERNEL_BRANCH | sed 's/[^a-zA-Z0-9_-]//g')
+          # rm -rf build
+          # mkdir build && cd build
+          # cmake ../ -G Ninja -DBUILD_TARGET=ALL
+          # ninja install && ninja syntests
+        else 
+          cd ${{github.workspace}}/../../DLC_Custom_Kernel/DLC_Custom_Kernel
+          git checkout $DLC_CUSTOM_KERNEL_CI_BRANCH
+          git pull --rebase
+          # rm -rf build
+          # mkdir build && cd build
+          # cmake ../ -G Ninja -DBUILD_TARGET=ALL
+          # ninja install && ninja syntests
+        fi
+        
+        if ! echo $DLC_SIM_BRANCH | grep -q "DEFAULT_BRANCH"; then
+          echo "this pull request depends on DLCsim"
+          echo $DLC_SIM_BRANCH
+          cd ${{github.workspace}}/../../DLCsim/DLCsim
+          git fetch
+          git checkout $(echo $DLC_SIM_BRANCH | sed 's/[^a-zA-Z0-9_-]//g')
+          ./build.sh
+        fi
+        
+        if ! echo $DLC_THUNK_BRANCH | grep -q "DEFAULT_BRANCH"; then
+          echo "this pull request depends on dlc-thunk"
+          echo $DLC_THUNK_BRANCH
+          cd ${{github.workspace}}/../../dlc-thunk/dlc-thunk
+          git fetch
+          git checkout $(echo $DLC_THUNK_BRANCH | sed 's/[^a-zA-Z0-9_-]//g')
+          ./compile.sh
+        fi
+
+        # if ! echo $DLC_KERNEL_DRIVER_BRANCH | grep -q "DEFAULT_BRANCH"; then
+        #   echo "this pull request depends on DLC-Kernel-Driver"
+        #   echo $DLC_KERNEL_DRIVER_BRANCH
+        #   cd ${{github.workspace}}/../../DLC-Kernel-Driver/DLC-Kernel-Driver
+        #   git fetch
+        #   git checkout $(echo $DLC_KERNEL_DRIVER_BRANCH | sed 's/[^a-zA-Z0-9_-]//g')
+        #   cd drivers/chipltech
+        #   ./build.sh
+        #   ./install.sh
+        # else 
+        #   cd ${{github.workspace}}/../../DLC-Kernel-Driver/DLC-Kernel-Driver
+        #   git checkout $DLC_KERNEL_DRIVER_CI_BRANCH
+        #   cd drivers/chipltech
+        #   ./build.sh
+        #   ./install.sh
+        # fi
+
+        if ! echo $DLC_CL_BRANCH | grep -q "DEFAULT_BRANCH"; then
+          echo "this pull request depends on DLC_CL"
+          echo $DLC_CL_BRANCH
+          cd ${{github.workspace}}/../../DLC_CL/DLC_CL
+          git fetch
+          git checkout $(echo $DLC_CL_BRANCH | sed 's/[^a-zA-Z0-9_-]//g')
+          # ./build.sh
+        else
+          cd ${{github.workspace}}/../../DLC_CL/DLC_CL
+          git checkout $DLC_CL_CI_BRANCH
+          git pull --rebase
+        fi
+        
+        # Pytorch repo
+        PYTORCH_TARGET_BRANCH="$PYTORCH_CI_BRANCH"
+        PYTORCH_CI_TMP_BRANCH="ci_branch_backup_abcnnn"
+        if ! echo $PYTORCH_BRANCH | grep -q "DEFAULT_BRANCH"; then
+          echo "this pull request depends on pytorch"
+          echo $PYTORCH_BRANCH
+          PYTORCH_TARGET_BRANCH="$(echo $PYTORCH_BRANCH | sed 's/[^a-zA-Z0-9_-]//g')"
+        fi
+        cd ${{github.workspace}}/../../pytorch/pytorch
+        git fetch
+        # Checkout to a tmp branch
+        if git branch --list "${PYTORCH_CI_TMP_BRANCH}" | grep -q "${PYTORCH_CI_TMP_BRANCH}"; then
+            git checkout ${PYTORCH_CI_TMP_BRANCH}
+        else
+            git checkout -b ${PYTORCH_CI_TMP_BRANCH}
+        fi
+        # Delete target branch if local has one.
+        if git branch --list "${PYTORCH_TARGET_BRANCH}" | grep -q "${PYTORCH_TARGET_BRANCH}"; then
+          echo "delete the local branch: ${PYTORCH_TARGET_BRANCH}"
+          git branch -D ${PYTORCH_TARGET_BRANCH}
+        fi
+        git checkout ${PYTORCH_TARGET_BRANCH}
+        # Init submodules
+        rm -rf ${{github.workspace}}/../../pytorch/pytorch/third_party/
+        git reset --hard
+        git clean -fd
+        git pull --rebase
+        git submodule update --init --recursive
+        git branch -D $PYTORCH_CI_TMP_BRANCH
+
+        if ! echo $IREE_BRANCH | grep -q "DEFAULT_BRANCH"; then
+          echo "this pull request depends on iree"
+          echo $IREE_BRANCH
+          cd ${{github.workspace}}/../../iree/iree
+          git pull --rebase
+          git checkout $(echo $IREE_BRANCH | sed 's/[^a-zA-Z0-9_-]//g')
+        else
+          cd ${{github.workspace}}/../../iree/iree
+          git checkout $IREE_CI_BRANCH
+          git pull --rebase
+        fi
+
+    - name: repo checkout for push
+      if: ${{github.event_name == 'push'}}
+      run: |
+        cd ${{github.workspace}}/../../DLC_Custom_Kernel/DLC_Custom_Kernel
+        git checkout $DLC_CUSTOM_KERNEL_CI_BRANCH
+        git pull --rebase
+        cd ${{github.workspace}}/../../DLC_CL/DLC_CL
+        git checkout $DLC_CL_CI_BRANCH
+        git pull --rebase
+        # Pytorch repo
+        cd ${{github.workspace}}/../../pytorch/pytorch
+        git fetch
+        PYTORCH_CI_TMP_BRANCH="ci_branch_backup_abcnnn"
+        if git branch --list "${PYTORCH_CI_TMP_BRANCH}" | grep -q "${PYTORCH_CI_TMP_BRANCH}"; then
+            git checkout ${PYTORCH_CI_TMP_BRANCH}
+        else
+            git checkout -b ${PYTORCH_CI_TMP_BRANCH}
+        fi
+        if git branch --list "$PYTORCH_CI_BRANCH" | grep -q "$PYTORCH_CI_BRANCH"; then
+          echo "delete the local branch"
+          git branch -D $PYTORCH_CI_BRANCH
+        fi
+        git checkout $PYTORCH_CI_BRANCH # checkout to remote
+        rm -rf ${{github.workspace}}/../../pytorch/pytorch/third_party/
+        git reset --hard
+        git clean -fd
+        git pull --rebase
+        git submodule update --init --recursive
+        git branch -D $PYTORCH_CI_TMP_BRANCH
+
+    - name: build DLCSynapse for push
+      id: synapse-build-push
+      if: ${{ github.event_name == 'push' }}
+      run: |
+          rm -rf /usr/local/chipltech/synapse_old
+          cp -r /usr/local/chipltech/synapse /usr/local/chipltech/synapse_old
+          ./compile.sh
+          cp /usr/local/chipltech/synapse_old/lib/libcustom_dlc_perf_lib.so /usr/local/chipltech/synapse/lib/libcustom_dlc_perf_lib.so
+          cp /usr/local/chipltech/synapse_old/include/enabled_kernels.hpp /usr/local/chipltech/synapse/include/enabled_kernels.hpp
+
+    - name: build DLCSynapse for pull request
+      id: synapse-build-pr
+      if: ${{ github.event_name == 'pull_request' }}
+      run: |
+          rm -rf /usr/local/chipltech-ci/synapse_old
+          cp -r /usr/local/chipltech/synapse /usr/local/chipltech-ci/synapse_old
+          bash ./build_for_ci.sh
+          cp /usr/local/chipltech-ci/synapse_old/lib/libcustom_dlc_perf_lib.so /usr/local/chipltech-ci/synapse/lib/libcustom_dlc_perf_lib.so
+          cp /usr/local/chipltech-ci/synapse_old/include/enabled_kernels.hpp /usr/local/chipltech-ci/synapse/include/enabled_kernels.hpp
+
+    - name: check abi change for push
+      id: abi-check-push
+      if: ${{ github.event_name == 'push' }}
+      run: |
+        output=$(rsync -rvcin --dry-run /usr/local/chipltech/synapse/include/ /usr/local/chipltech/synapse_old/include/)
+        echo "$output"
+        # 判断 rsync 输出中是否包含文件差异信息
+        if echo "$output" | grep -q "^sending incremental file list$"; then
+            # 检查是否只有 "sending incremental file list" 一行，表示没有文件差异
+            if [ "$(echo "$output" | wc -l)" -eq 4 ]; then
+                echo "ABI_DIFF=false" >> $GITHUB_OUTPUT
+            else
+                echo "ABI_DIFF=true" >> $GITHUB_OUTPUT
+            fi
+        else
+            echo "ABI_DIFF=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: check abi change for pull request
+      id: abi-check-pr
+      if: ${{ github.event_name == 'pull_request' }}
+      run: |
+        output=$(rsync -rvcin --dry-run /usr/local/chipltech-ci/synapse/include/ /usr/local/chipltech-ci/synapse_old/include/)
+        echo "$output"
+        # 判断 rsync 输出中是否包含文件差异信息
+        if echo "$output" | grep -q "^sending incremental file list$"; then
+            # 检查是否只有 "sending incremental file list" 一行，表示没有文件差异
+            if [ "$(echo "$output" | wc -l)" -eq 4 ]; then
+                echo "ABI_DIFF=false" >> $GITHUB_OUTPUT
+            else
+                echo "ABI_DIFF=true" >> $GITHUB_OUTPUT
+            fi
+        else
+            echo "ABI_DIFF=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: build custom_kernel for push
+      id: custom-kernel-build-push
+      if: ${{ github.event_name == 'push' && steps.abi-check-push.outputs.ABI_DIFF == 'true'}}
+      run: |
+          export LD_LIBRARY_PATH=/usr/local/chipltech/simulator/lib:/usr/local/chipltech/thunk/lib/:/usr/local/chipltech/synapse/lib/:$LD_LIBRARY_PATH
+          cd ../../DLC_Custom_Kernel/DLC_Custom_Kernel
+          rm -rf build
+          mkdir build && cd build
+          cmake ../ -G Ninja -DBUILD_TARGET=ALL
+          ninja syntests
+          ninja install
+
+    - name: build custom_kernel for pull request
+      id: custom-kernel-build-pr
+      if: ${{ github.event_name == 'pull_request' && steps.abi-check-pr.outputs.ABI_DIFF == 'true'}}
+      run: |
+          export LD_LIBRARY_PATH=/usr/local/chipltech/simulator/lib:/usr/local/chipltech/thunk/lib/:/usr/local/chipltech-ci/synapse/lib/:$LD_LIBRARY_PATH
+          cd ../../DLC_Custom_Kernel/DLC_Custom_Kernel
+          git pull --rebase
+          rm -rf build
+          mkdir build && cd build
+          cmake ../ -G Ninja -DBUILD_TARGET=ALL -DCMAKE_INSTALL_PREFIX=/usr/local/chipltech-ci/synapse
+          ninja syntests
+          ninja install
+
+    - name: build DLC_CL for push
+      id: DLC-CL-build-push
+      if: ${{ github.event_name == 'push' && steps.abi-check-push.outputs.ABI_DIFF == 'true'}}
+      run: |
+          export LD_LIBRARY_PATH=/usr/local/chipltech/simulator/lib:/usr/local/chipltech/thunk/lib/:/usr/local/chipltech/synapse/lib/:$LD_LIBRARY_PATH
+          cd ../../DLC_CL/DLC_CL
+          # git checkout inc_nsteps
+          rm -rf build
+          ./build.sh
+
+    - name: build DLC_CL for pull request
+      id: DLC-CL-build-pr
+      if: ${{ github.event_name == 'pull_request' && steps.abi-check-pr.outputs.ABI_DIFF == 'true'}}
+      run: |
+          export LD_LIBRARY_PATH=/usr/local/chipltech/simulator/lib:/usr/local/chipltech/thunk/lib/:/usr/local/chipltech-ci/synapse/lib/:$LD_LIBRARY_PATH
+          cd ../../DLC_CL/DLC_CL
+          # git checkout inc_nsteps
+          rm -rf build
+          ./build_for_ci.sh
+
+    - name: build pytorch for push
+      id: pytorch-build-push
+      if: ${{ github.event_name == 'push' && steps.abi-check-push.outputs.ABI_DIFF == 'true'}}
+      run: |
+          export LD_LIBRARY_PATH=/usr/local/chipltech/simulator/lib:/usr/local/chipltech/thunk/lib/:/usr/local/chipltech/synapse/lib/:$LD_LIBRARY_PATH
+          cd ../../pytorch/pytorch
+          # git checkout release_21
+          source /root/miniconda/etc/profile.d/conda.sh
+          conda activate torch
+          export PATH=/root/miniconda/bin:${PATH}
+          export PATH=/root/miniconda/envs/torch/bin:$PATH
+          export DLC_SYN_USE_SIM=1
+          export DLC_SYN_BLOCKING=1
+          rm -rf build
+          python -m pip uninstall -y torch
+          USE_CUDA=0 CFLAGS='-O3 -fdiagnostics-color=always' PYTORCH_BUILD_VERSION='2.5.0' PYTORCH_BUILD_NUMBER=0 python setup.py develop
+          python test_dlc/run.py test_rotary_pos_emb
+
+    - name: build pytorch for pull request
+      id: pytorch-build-pr
+      if: ${{ github.event_name == 'pull_request' && steps.abi-check-pr.outputs.ABI_DIFF == 'true'}}
+      run: |
+          export LD_LIBRARY_PATH=/usr/local/chipltech/simulator/lib:/usr/local/chipltech/thunk/lib/:/usr/local/chipltech-ci/synapse/lib/:$LD_LIBRARY_PATH
+          cd ../../pytorch/pytorch
+          # git checkout release_21
+          source /root/miniconda/etc/profile.d/conda.sh
+          conda activate torch
+          export PATH=/root/miniconda/bin:${PATH}
+          export PATH=/root/miniconda/envs/torch/bin:$PATH
+          export DLC_SYN_USE_SIM=1
+          export DLC_SYN_BLOCKING=1
+          rm -rf build
+          python -m pip uninstall -y torch
+          USE_CUDA=0 CFLAGS='-O3 -fdiagnostics-color=always' PYTORCH_BUILD_VERSION='2.5.0' PYTORCH_BUILD_NUMBER=0 python setup.py develop
+          python test_dlc/run.py test_rotary_pos_emb
+
+    - name: build iree for push
+      id: iree-build-push
+      if: ${{ github.event_name == 'push' && steps.abi-check-push.outputs.ABI_DIFF == 'true'}}
+      run: |
+        cd ../../iree/iree
+        git submodule update --init
+        rm -rf third_party/llvm-project
+        ln -snf $LLVM_PATH third_party/llvm-project
+        export PATH=$DLC_IREETOOL_PATH:$PATH
+        export LD_LIBRARY_PATH=/usr/local/chipltech/simulator/lib:/usr/local/chipltech/thunk/lib/:/usr/local/chipltech/synapse/lib/:/usr/local/chipltech/dlccl/lib:$LD_LIBRARY_PATH
+        ./build.sh
+
+    - name: build iree for pull request
+      id: iree-build-pr
+      if: ${{ github.event_name == 'pull_request' && steps.abi-check-pr.outputs.ABI_DIFF == 'true'}}
+      run: |
+        cd ../../iree/iree
+        git submodule update --init
+        rm -rf third_party/llvm-project
+        ln -snf $LLVM_PATH third_party/llvm-project
+        export PATH=$DLC_IREETOOL_PATH:$PATH
+        export LD_LIBRARY_PATH=/usr/local/chipltech/simulator/lib:/usr/local/chipltech/thunk/lib/:/usr/local/chipltech/synapse/lib/:/usr/local/chipltech/dlccl/lib:$LD_LIBRARY_PATH
+        ./build.sh
+
+    - name: update commit
+      if: ${{ success() && github.event_name == 'push' }}
+      run: |
+        cd ../../Commit/DLCSynapse
+        git checkout main
+        current_branch=$(git branch --show-current)
+        git fetch origin
+        behind_count=$(git rev-list --count HEAD..origin/$current_branch)
+        if [ $behind_count -gt 0 ]; then
+            echo "Your branch is behind 'origin/$current_branch' by $behind_count commits."
+            echo "Pulling the latest changes from remote."
+            git pull origin $current_branch
+            cd ..
+            # git config user.name github-actions
+            # git config user.email github-actions@github.com
+            git add .
+            git commit -m "ci auto update DLCSynapse"
+            git push
+        else
+            echo "Your branch is up to date with 'origin/$current_branch'."
+        fi
+
+    - name: The synapse build failed due to push
+      if: ${{ failure() && steps.synapse-build-push.conclusion == 'failure' }}
+      run: |
+        echo 'synapse build failed!'
+        curl 'https://oapi.dingtalk.com/robot/send?access_token=5e875e8726b5c3f741ed783288c0dcfc2b5c9fe7c976c57645c3c7a7465977ab'  \
+          -H 'Content-Type: application/json' \
+          -d '{"msgtype": "text","text": {"content":"synapse build failed! 相关push是${{ github.event.head_commit.url }}\n麻烦相关负责人检查一下@all"},"at":{"atMobiles":[""],"isAtAll":true}}'
+
+    - name: The synapse build failed due to pull request
+      if: ${{ failure() && steps.synapse-build-pr.conclusion == 'failure' }}
+      run: |
+        echo 'synapse build failed!'
+        curl 'https://oapi.dingtalk.com/robot/send?access_token=5e875e8726b5c3f741ed783288c0dcfc2b5c9fe7c976c57645c3c7a7465977ab'  \
+          -H 'Content-Type: application/json' \
+          -d '{"msgtype": "text","text": {"content":"synapse build failed! 相关pull_request是${{ github.event.pull_request.html_url }}\n麻烦相关负责人检查一下@all"},"at":{"atMobiles":[""],"isAtAll":true}}'
+
+    - name: The custom kernel build failed due to synapse push
+      if: ${{ failure() && steps.custom-kernel-build-push.conclusion == 'failure' }}
+      run: |
+        echo 'custom-kernel build failed!'
+        curl 'https://oapi.dingtalk.com/robot/send?access_token=5e875e8726b5c3f741ed783288c0dcfc2b5c9fe7c976c57645c3c7a7465977ab'  \
+          -H 'Content-Type: application/json' \
+          -d '{"msgtype": "text","text": {"content":"synapse仓最新的提交会导致custom kernel仓build failed! 相关push是${{ github.event.head_commit.url }}\n麻烦相关负责人检查一下@all"},"at":{"atMobiles":[""],"isAtAll":true}}'
+
+    - name: The custom kernel build failed due to synapse pull request
+      if: ${{ failure() && steps.custom-kernel-build-pr.conclusion == 'failure' }}
+      run: |
+        echo 'custom-kernel build failed!'
+        curl 'https://oapi.dingtalk.com/robot/send?access_token=5e875e8726b5c3f741ed783288c0dcfc2b5c9fe7c976c57645c3c7a7465977ab'  \
+          -H 'Content-Type: application/json' \
+          -d '{"msgtype": "text","text": {"content":"synapse仓最新的提交会导致custom kernel仓build failed! 相关pull_request是${{ github.event.pull_request.html_url }}\n麻烦相关负责人检查一下@all"},"at":{"atMobiles":[""],"isAtAll":true}}'
+
+    - name: The DLC_CL build failed due to synapse push
+      if: ${{ failure() && steps.DLC-CL-build-push.conclusion == 'failure' }}
+      run: |
+        echo 'DLC_CL build failed!'
+        curl 'https://oapi.dingtalk.com/robot/send?access_token=5e875e8726b5c3f741ed783288c0dcfc2b5c9fe7c976c57645c3c7a7465977ab'  \
+          -H 'Content-Type: application/json' \
+          -d '{"msgtype": "text","text": {"content":"synapse仓最新的提交会导致DLC_CL仓build failed! 相关push是${{ github.event.head_commit.url }}\n麻烦相关负责人检查一下@all"},"at":{"atMobiles":[""],"isAtAll":true}}'
+
+    - name: The DLC_CL build failed due to synapse pull request
+      if: ${{ failure() && steps.DLC-CL-build-pr.conclusion == 'failure' }}
+      run: |
+        echo 'DLC_CL build failed!'
+        curl 'https://oapi.dingtalk.com/robot/send?access_token=5e875e8726b5c3f741ed783288c0dcfc2b5c9fe7c976c57645c3c7a7465977ab'  \
+          -H 'Content-Type: application/json' \
+          -d '{"msgtype": "text","text": {"content":"synapse仓最新的提交会导致DLC_CL仓build failed! 相关pull_request是${{ github.event.pull_request.html_url }}\n麻烦相关负责人检查一下@all"},"at":{"atMobiles":[""],"isAtAll":true}}'
+
+    - name: The pytorch build failed due to synapse push
+      if: ${{ failure() && steps.pytorch-build-push.conclusion == 'failure' }}
+      run: |
+        echo 'pytorch build failed!'
+        curl 'https://oapi.dingtalk.com/robot/send?access_token=5e875e8726b5c3f741ed783288c0dcfc2b5c9fe7c976c57645c3c7a7465977ab'  \
+          -H 'Content-Type: application/json' \
+          -d '{"msgtype": "text","text": {"content":"synapse仓最新的提交会导致pytorch仓test failed! 相关push是${{ github.event.head_commit.url }}\n麻烦相关负责人检查一下@all"},"at":{"atMobiles":[""],"isAtAll":true}}'
+
+    - name: The pytorch build failed due to synapse pull request
+      if: ${{ failure() && steps.pytorch-build-pr.conclusion == 'failure' }}
+      run: |
+        echo 'pytorch build failed!'
+        curl 'https://oapi.dingtalk.com/robot/send?access_token=5e875e8726b5c3f741ed783288c0dcfc2b5c9fe7c976c57645c3c7a7465977ab'  \
+          -H 'Content-Type: application/json' \
+          -d '{"msgtype": "text","text": {"content":"synapse仓最新的提交会导致pytorch仓test failed! 相关pull_request是${{ github.event.pull_request.html_url }}\n麻烦相关负责人检查一下@all"},"at":{"atMobiles":[""],"isAtAll":true}}'

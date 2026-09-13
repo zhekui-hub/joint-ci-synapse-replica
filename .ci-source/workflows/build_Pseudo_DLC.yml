@@ -1,0 +1,20 @@
+name: DLCSynapse build on pseudo dlc
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  call-arsenal-pseudo-test:
+    uses: ChipLTech/arsenal/.github/workflows/Pseudo_test.yml@main
+    with:
+      is_pr: ${{ github.event_name == 'pull_request' }}
+      caller_repo: DLCSynapse
+      pull_request_body: |
+        DLC_SYNAPSE_BRANCH=${{ github.head_ref }}
+        ${{ github.event.pull_request.body }}
+      concurrency_suffix: dlcsynapse-pseudo

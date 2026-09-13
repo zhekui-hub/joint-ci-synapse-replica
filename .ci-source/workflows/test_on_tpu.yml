@@ -1,0 +1,36 @@
+name: test DLCSynapse on tpu
+
+on:
+
+  pull_request:
+    branches:
+    - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pre-checks:
+    runs-on: [self-hosted, tpu]
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: check branch commit message
+        if: ${{ github.event_name == 'pull_request' }}
+        id: check-cm
+        run: python3 .github/scripts/check_cm.py remote
+
+  call-singlecard:
+    needs: pre-checks
+    uses: ChipLTech/arsenal/.github/workflows/MultiRepo_runtest.yml@main
+    with:
+      test_scope: 'both'
+      caller_repo: 'DLCSynapse'
+      pull_request_body: |
+        DLC_SYNAPSE_BRANCH=${{ github.head_ref }}
+        ${{ github.event.pull_request.body }}
+      concurrency_suffix: 'dlcsynapse-ci'
+    secrets: inherit

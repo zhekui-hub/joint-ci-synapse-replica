@@ -1,0 +1,133 @@
+name: Auto Tag & Release
+
+# 触发条件：当 PR 合并到 main 分支时
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+
+jobs:
+  release:
+    # 关键检查：确保 PR 是被“合并”而不是直接“关闭”的
+    if: github.event.pull_request.merged == true
+    runs-on: arc-runner-ci-router
+    
+    # 必须赋予写权限，以便 Action 能推送 Tag 和创建 Release
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        shell: bash
+        env:
+          TARGET_REF: ${{ github.ref }}
+          TARGET_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          validate_inputs() {
+            if [[ "$TARGET_REF" != "refs/heads/main" ]]; then
+              echo "Unexpected release ref: ${TARGET_REF}" >&2
+              exit 1
+            fi
+            if [[ ! "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+              echo "Invalid target SHA: ${TARGET_SHA}" >&2
+              exit 1
+            fi
+            if [[ -z "${GITHUB_WORKSPACE:-}" || "$GITHUB_WORKSPACE" == "/" ]]; then
+              echo "Invalid GITHUB_WORKSPACE: ${GITHUB_WORKSPACE:-}" >&2
+              exit 1
+            fi
+            if [[ -z "${RUNNER_TEMP:-}" || "$RUNNER_TEMP" == "/" ]]; then
+              echo "Invalid RUNNER_TEMP: ${RUNNER_TEMP:-}" >&2
+              exit 1
+            fi
+            if [[ "$GITHUB_REPOSITORY" != */* ]]; then
+              echo "Invalid GITHUB_REPOSITORY: ${GITHUB_REPOSITORY:-}" >&2
+              exit 1
+            fi
+          }
+
+          clean_workspace() {
+            local parent_path
+            local repo_name="${GITHUB_REPOSITORY##*/}"
+            local runner_root_path
+            local workspace_path
+
+            mkdir -p -- "$GITHUB_WORKSPACE"
+            runner_root_path="$(cd "$RUNNER_TEMP/.." && pwd -P)"
+            workspace_path="$(cd "$GITHUB_WORKSPACE" && pwd -P)"
+            parent_path="$(cd "$workspace_path/.." && pwd -P)"
+            if [[ "$workspace_path" == "/" ]]; then
+              echo "Refusing to clean root workspace: ${GITHUB_WORKSPACE}" >&2
+              exit 1
+            fi
+            if [[ "$runner_root_path" == "/" ]]; then
+              echo "Refusing root runner workspace for temp path: ${RUNNER_TEMP}" >&2
+              exit 1
+            fi
+            if [[ "$parent_path" != "$runner_root_path/$repo_name" || "$workspace_path" != "$parent_path/$repo_name" ]]; then
+              echo "Unexpected workspace layout: ${workspace_path}" >&2
+              exit 1
+            fi
+            find "$workspace_path" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +
+          }
+
+          init_repository() {
+            export GIT_CONFIG_GLOBAL="$RUNNER_TEMP/release-tag-gitconfig"
+            rm -f -- "$GIT_CONFIG_GLOBAL"
+            git config --global --add safe.directory "$GITHUB_WORKSPACE"
+            git init "$GITHUB_WORKSPACE"
+            git -C "$GITHUB_WORKSPACE" config core.hooksPath /dev/null
+            git -C "$GITHUB_WORKSPACE" remote add origin "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git"
+          }
+
+          fetch_main() {
+            local auth_header
+            local fetch_args=(--force --tags)
+
+            if [[ "$(git -C "$GITHUB_WORKSPACE" rev-parse --is-shallow-repository)" == "true" ]]; then
+              fetch_args+=(--unshallow)
+            fi
+            auth_header="$(printf 'x-access-token:%s' "$GITHUB_TOKEN" | base64 | tr -d '\n')"
+            git -C "$GITHUB_WORKSPACE" \
+              -c "http.${GITHUB_SERVER_URL}/.extraheader=AUTHORIZATION: basic ${auth_header}" \
+              fetch "${fetch_args[@]}" origin '+refs/heads/main:refs/remotes/origin/main'
+          }
+
+          checkout_target() {
+            git -C "$GITHUB_WORKSPACE" merge-base --is-ancestor "$TARGET_SHA" refs/remotes/origin/main
+            git -C "$GITHUB_WORKSPACE" checkout --force --detach "$TARGET_SHA"
+            git -C "$GITHUB_WORKSPACE" clean -ffdx
+          }
+
+          verify_checkout() {
+            local actual_sha
+            actual_sha="$(git -C "$GITHUB_WORKSPACE" rev-parse HEAD)"
+            if [[ "$actual_sha" != "$TARGET_SHA" ]]; then
+              echo "Checkout mismatch: expected ${TARGET_SHA}, got ${actual_sha}" >&2
+              exit 1
+            fi
+          }
+
+          validate_inputs
+          clean_workspace
+          init_repository
+          fetch_main
+          checkout_target
+          verify_checkout
+
+      - name: Bump version and push tag
+        id: tag_version
+        # v6.2 uses Node.js 20, which is supported by the router runner.
+        uses: mathieudutour/github-tag-action@v6.2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          commit_sha: ${{ github.event.pull_request.merge_commit_sha }}
+          # 默认行为：如果没有特殊的 commit message，默认升级 patch (比如 v1.0.0 -> v1.0.1)
+          default_bump: patch 
+          # 设置 Tag 前缀，如果你不喜欢 'v' 可以留空
+          tag_prefix: "v"
+          # 如果这里设置为 true，它还会自动创建一个 GitHub Release 页面

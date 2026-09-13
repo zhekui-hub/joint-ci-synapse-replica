@@ -1,0 +1,47 @@
+name: AI Code Review (PR-Agent)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  pull_request_review_comment:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: PR number to review
+        required: true
+        type: number
+
+jobs:
+  pr-agent-event:
+    if: |
+      (github.event_name == 'pull_request' &&
+        github.event.pull_request.draft == false &&
+        github.event.pull_request.head.repo.full_name == github.repository) ||
+      (github.event_name == 'pull_request_review_comment' &&
+        github.event.pull_request.draft == false &&
+        github.event.pull_request.head.repo.full_name == github.repository &&
+        github.event.sender.type != 'Bot')
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+    uses: ChipLTech/arsenal/.github/workflows/ai_code_review.yml@main
+    with:
+      event_name: ${{ github.event_name }}
+      event_payload: ${{ toJSON(github.event) }}
+      pr_number: ${{ format('{0}', github.event.pull_request.number) }}
+      commands: '["describe","review","improve"]'
+      concurrency_key: ${{ github.event_name == 'pull_request_review_comment' && format('{0}', github.event.comment.id) || 'automatic' }}
+
+  pr-agent-dispatch:
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+    uses: ChipLTech/arsenal/.github/workflows/ai_code_review.yml@main
+    with:
+      pr_number: ${{ format('{0}', inputs.pr_number) }}
+      commands: '["describe","review","improve"]'
+      concurrency_key: automatic
