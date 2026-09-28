@@ -1,4 +1,4 @@
-name: Joint CI participant replica
+name: Joint CI participant replica [dry-run]
 
 on:
   pull_request:
@@ -21,7 +21,8 @@ permissions:
 jobs:
   independent-contract:
     name: Independent contract [simulated]
-    runs-on: [self-hosted, replica-synapse]
+    timeout-minutes: 5
+    runs-on: [self-hosted, grok-box]
     strategy:
       fail-fast: false
       matrix:
@@ -40,7 +41,8 @@ jobs:
     name: Joint report [simulated]
     needs: independent-contract
     if: ${{ always() }}
-    runs-on: [self-hosted, replica-synapse]
+    timeout-minutes: 5
+    runs-on: [self-hosted, grok-box]
     env:
       REPLICA_REPOSITORY: synapse
       JOINT_CI_ID: ${{ inputs.joint_id || 'replica-pr' }}

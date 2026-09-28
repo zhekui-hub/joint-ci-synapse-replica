@@ -3,20 +3,27 @@ name: test DLCSynapse on tpu [replica dry-run]
   pull_request:
     branches:
     - main
-  workflow_dispatch: null
+  workflow_dispatch:
+    inputs:
+      simulate_failure:
+        description: Fail one simulated job by id/workflow/repo, or all
+        required: false
+        default: ''
 permissions:
   contents: read
   actions: read
 env:
-  REPLICA_SOURCE_SHA: acfe7ff8b51d2fe6391301af0eb5b159720f3a21
+  REPLICA_SOURCE_SHA: be4dd338979bbab8c628ec1ee58aadc47d7d2567
   REPLICA_TEST_MODE: dry-run
+  REPLICA_RUNNER_LABEL: grok-box
 jobs:
   pre-checks:
     name: pre-checks [simulated]
     if: ${{ always() }}
+    timeout-minutes: 5
     runs-on:
     - self-hosted
-    - replica-synapse
+    - grok-box
     strategy:
       fail-fast: false
       matrix:
@@ -31,17 +38,18 @@ jobs:
         }}
       MATRIX_JSON: ${{ toJson(matrix) }}
     steps:
+    - name: Checkout replica harness
+      uses: actions/checkout@v4
     - name: Simulate source job contract
       shell: python
       run: python ci_sim/runner.py
   call-singlecard:
     name: call-singlecard [simulated]
-    needs:
-    - pre-checks
     if: ${{ always() }}
+    timeout-minutes: 5
     runs-on:
     - self-hosted
-    - replica-synapse
+    - grok-box
     strategy:
       fail-fast: false
       matrix:
@@ -56,6 +64,10 @@ jobs:
         }}
       MATRIX_JSON: ${{ toJson(matrix) }}
     steps:
+    - name: Checkout replica harness
+      uses: actions/checkout@v4
     - name: Simulate source job contract
       shell: python
       run: python ci_sim/runner.py
+    needs:
+    - pre-checks

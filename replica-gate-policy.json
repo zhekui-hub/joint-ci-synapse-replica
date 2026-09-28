@@ -1,0 +1,88 @@
+{
+  "mode": "dry-run",
+  "source_repo": "ChipLTech/DLCSynapse",
+  "source_sha": "be4dd338979bbab8c628ec1ee58aadc47d7d2567",
+  "source_ruleset_id": 3257698,
+  "required_checks": [
+    "Check Synapse API change window / Check API change window",
+    "Synapse CI aggregate"
+  ],
+  "ruleset_snapshot": {
+    "id": 3257698,
+    "name": "rule_synapse",
+    "target": "branch",
+    "source_type": "Repository",
+    "source": "ChipLTech/DLCSynapse",
+    "enforcement": "active",
+    "conditions": {
+      "ref_name": {
+        "exclude": [],
+        "include": [
+          "~DEFAULT_BRANCH"
+        ]
+      }
+    },
+    "rules": [
+      {
+        "type": "deletion"
+      },
+      {
+        "type": "non_fast_forward"
+      },
+      {
+        "type": "pull_request",
+        "parameters": {
+          "required_approving_review_count": 2,
+          "dismiss_stale_reviews_on_push": true,
+          "required_reviewers": [],
+          "require_code_owner_review": true,
+          "dismissal_restriction": {
+            "enabled": false,
+            "allowed_actors": []
+          },
+          "require_last_push_approval": false,
+          "required_review_thread_resolution": true,
+          "require_extra_approval_for_unattributed_changes": true,
+          "allowed_merge_methods": [
+            "merge",
+            "squash",
+            "rebase"
+          ]
+        }
+      },
+      {
+        "type": "required_status_checks",
+        "parameters": {
+          "strict_required_status_checks_policy": false,
+          "do_not_enforce_on_create": false,
+          "required_status_checks": [
+            {
+              "context": "Check Synapse API change window / Check API change window",
+              "integration_id": 15368
+            },
+            {
+              "context": "Synapse CI aggregate",
+              "integration_id": 15368
+            }
+          ]
+        }
+      }
+    ],
+    "node_id": "RRS_lACqUmVwb3NpdG9yec4ke3g_zgAxtWI",
+    "created_at": "2025-01-14T10:47:23.372+08:00",
+    "updated_at": "2026-09-14T11:55:06.583+08:00",
+    "current_user_can_bypass": "never",
+    "_links": {
+      "self": {
+        "href": "https://api.github.com/repos/ChipLTech/DLCSynapse/rulesets/3257698"
+      },
+      "html": {
+        "href": "https://github.com/ChipLTech/DLCSynapse/rules/3257698"
+      }
+    }
+  },
+  "runner_label": "grok-box",
+  "simulation_command": "python ci_sim/runner.py",
+  "remote_enforcement": "not applied; private replica branch protection API returned 403",
+  "note": "This policy mirrors production gate intent; it is declarative and does not claim GitHub enforcement."
+}
