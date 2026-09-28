@@ -51,8 +51,11 @@ jobs:
       REPLICA_SOURCE_WORKFLOW: joint_ci_hook
       REPLICA_SOURCE_JOB: joint-report
       REPLICA_SCOPE: public
+      JOINT_DISPATCH_TOKEN: ${{ secrets.JOINT_DISPATCH_TOKEN }}
+      JOINT_TARGET_REPO: zhekui-hub/joint-ci-arsenal-replica
       GITHUB_HEAD_REF: ${{ github.head_ref || github.ref_name }}
       GITHUB_SHA: ${{ github.sha }}
     steps:
       - uses: actions/checkout@v4
       - run: python ci_sim/participant_report.py
+
