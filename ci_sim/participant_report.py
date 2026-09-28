@@ -3,4 +3,6 @@ report={'schema_version':1,'joint_id':os.environ.get('JOINT_CI_ID','replica-manu
 print(json.dumps(report, sort_keys=True))
 if os.environ.get('JOINT_DISPATCH_TOKEN'):
     payload=json.dumps({'event_type':'joint_ci_report','client_payload':report})
-    subprocess.run(['gh','api','-X','POST','repos/'+os.environ['JOINT_TARGET_REPO']+'/dispatches','--input','-'], input=payload, text=True, check=True)
+    gh_env = os.environ.copy()
+    gh_env['GH_TOKEN'] = os.environ['JOINT_DISPATCH_TOKEN']
+    subprocess.run(['gh','api','-X','POST','repos/'+os.environ['JOINT_TARGET_REPO']+'/dispatches','--input','-'], input=payload, text=True, check=True, env=gh_env)
