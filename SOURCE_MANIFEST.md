@@ -1,10 +1,67 @@
-# Frozen source
+# Production CI source mirror
+
+This file records the read-only production source used to build this dry-run replica.
 
 ```json
 {
-  "repo": "joint-ci-synapse-replica",
-  "source_sha": "acfe7ff8b51d2fe6391301af0eb5b159720f3a21",
-  "workflows": 10,
-  "jobs": 20
+  "repo": "synapse",
+  "source_repo": "ChipLTech/DLCSynapse",
+  "source_sha": "be4dd338979bbab8c628ec1ee58aadc47d7d2567",
+  "runner_label": "grok-box",
+  "mode": "dry-run",
+  "workflow_count": 10,
+  "job_count": 20,
+  "workflows": [
+    {
+      "path": "ai_code_review.yml",
+      "sha256": "84b36161fffa9c118266a5decaea7c08b3474ae8b1db00effaf40b12241fb4fa",
+      "jobs": 2
+    },
+    {
+      "path": "build.yml",
+      "sha256": "3a992f4995ce970616baf8abf7c0c73934a85eec40282e0881fc4a30667b361f",
+      "jobs": 1
+    },
+    {
+      "path": "build_Pseudo_DLC.yml",
+      "sha256": "074c440696927211b54c97edc5b679c382a36acea3facf2ce4e42700cd1c9fe6",
+      "jobs": 1
+    },
+    {
+      "path": "cancel_ci_on_closed_pr.yml",
+      "sha256": "504fb1976427ff9e80bc46fbbdbb95abf07b7c383fdf9c35bfec84a2dbff31bb",
+      "jobs": 2
+    },
+    {
+      "path": "ci_router.yml",
+      "sha256": "69e024d4ea672aa48e684d35212ce046353d82e547968aeeeb68d450cbc0b5f6",
+      "jobs": 6
+    },
+    {
+      "path": "custom_kernel_build.yml",
+      "sha256": "baa913c3411e06adf6ea1852f6de207aa0edcb786d6e2d9fba07ff7055a11101",
+      "jobs": 1
+    },
+    {
+      "path": "dingding_robot.yml",
+      "sha256": "1624f408cc5aa6401b06311b4236dd34c3cf52cba586e3a88fa0a5e702082bff",
+      "jobs": 2
+    },
+    {
+      "path": "driver_api_guard.yml",
+      "sha256": "374353989045bff85b48699ed1f4d08eb8514b502054865db92b3aef5bcaf96f",
+      "jobs": 2
+    },
+    {
+      "path": "release-tag.yml",
+      "sha256": "b604cf8972642ac8eaa74d61df150f848b94aacec68cf7e25161766e3156c3e2",
+      "jobs": 1
+    },
+    {
+      "path": "test_on_tpu.yml",
+      "sha256": "b8a3e95d73aed19aac65ea2e3109dc27f6ae0f961b90534a0a27e725aabe3736",
+      "jobs": 2
+    }
+  ]
 }
 ```

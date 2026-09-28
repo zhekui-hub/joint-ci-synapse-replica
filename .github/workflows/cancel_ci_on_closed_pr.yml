@@ -3,59 +3,60 @@ name: Cancel CI when PR closed [replica dry-run]
   pull_request:
     types:
     - closed
-  workflow_dispatch: null
+  workflow_dispatch:
+    inputs:
+      simulate_failure:
+        description: Fail one simulated job by id/workflow/repo, or all
+        required: false
+        default: ''
 permissions:
   contents: read
   actions: read
 env:
-  REPLICA_SOURCE_SHA: acfe7ff8b51d2fe6391301af0eb5b159720f3a21
+  REPLICA_SOURCE_SHA: be4dd338979bbab8c628ec1ee58aadc47d7d2567
   REPLICA_TEST_MODE: dry-run
+  REPLICA_RUNNER_LABEL: grok-box
 jobs:
   prepare-workflows:
     name: prepare-workflows [simulated]
     if: ${{ always() }}
+    timeout-minutes: 5
     runs-on:
     - self-hosted
-    - replica-synapse
-    strategy:
-      fail-fast: false
-      matrix:
-        replica_case:
-        - default
+    - grok-box
     env:
       REPLICA_REPOSITORY: synapse
       REPLICA_SOURCE_WORKFLOW: cancel_ci_on_closed_pr.yml
       REPLICA_SOURCE_JOB: prepare-workflows
       REPLICA_SCOPE: private
-      SIMULATE_FAILURE: ${{ inputs.simulate_failure || vars.SIMULATE_FAILURE || ''
-        }}
+      SIMULATE_FAILURE: ${{ inputs.simulate_failure || vars.SIMULATE_FAILURE || '' }}
       MATRIX_JSON: ${{ toJson(matrix) }}
     steps:
+    - name: Checkout replica harness
+      uses: actions/checkout@v4
     - name: Simulate source job contract
-      shell: python
-      run: python ci_sim/runner.py
+      shell: bash
+      run: python3 ci_sim/runner.py
   cancel-running-ci:
     name: cancel-running-ci [simulated]
-    needs:
-    - prepare-workflows
     if: ${{ always() }}
+    timeout-minutes: 5
     runs-on:
     - self-hosted
-    - replica-synapse
-    strategy:
-      fail-fast: false
-      matrix:
-        replica_case:
-        - default
+    - grok-box
     env:
       REPLICA_REPOSITORY: synapse
       REPLICA_SOURCE_WORKFLOW: cancel_ci_on_closed_pr.yml
       REPLICA_SOURCE_JOB: cancel-running-ci
       REPLICA_SCOPE: private
-      SIMULATE_FAILURE: ${{ inputs.simulate_failure || vars.SIMULATE_FAILURE || ''
-        }}
+      SIMULATE_FAILURE: ${{ inputs.simulate_failure || vars.SIMULATE_FAILURE || '' }}
       MATRIX_JSON: ${{ toJson(matrix) }}
+      NEEDS_JSON: ${{ toJson(needs) }}
     steps:
+    - name: Checkout replica harness
+      uses: actions/checkout@v4
     - name: Simulate source job contract
-      shell: python
-      run: python ci_sim/runner.py
+      shell: bash
+      run: python3 ci_sim/runner.py
+    needs:
+    - prepare-workflows
