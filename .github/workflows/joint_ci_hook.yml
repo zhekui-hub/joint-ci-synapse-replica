@@ -52,6 +52,7 @@ jobs:
       REPLICA_SOURCE_JOB: joint-report
       REPLICA_SCOPE: public
       JOINT_DISPATCH_TOKEN: ${{ secrets.JOINT_DISPATCH_TOKEN }}
+      GH_TOKEN: ${{ secrets.JOINT_DISPATCH_TOKEN }}
       JOINT_TARGET_REPO: zhekui-hub/joint-ci-arsenal-replica
       GITHUB_HEAD_REF: ${{ github.head_ref || github.ref_name }}
       GITHUB_SHA: ${{ github.sha }}
