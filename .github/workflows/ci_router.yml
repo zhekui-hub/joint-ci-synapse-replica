@@ -162,7 +162,7 @@ jobs:
     - route
     - prechecks
   aggregate:
-    name: Synapse CI aggregate [simulated]
+    name: Synapse CI aggregate
     if: ${{ always() }}
     timeout-minutes: 5
     runs-on:

@@ -8,3 +8,4 @@
 - Required checks are documented in `replica-gate-policy.json`; GitHub branch protection is intentionally not changed.
 - The Grok Bot cloud runner must be registered for this repository with labels `self-hosted` and `grok-box` before dispatch.
 - Suggested dispatch: `gh workflow run <workflow.yml> --repo zhekui-hub/joint-ci-synapse-replica --ref zhekui/chore-production-ci-replica-20260928`
+- Production gate check names are retained where the source ruleset requires them; only the implementation behind the check is simulated.

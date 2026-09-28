@@ -18,7 +18,7 @@ env:
   REPLICA_RUNNER_LABEL: grok-box
 jobs:
   driver_api_guard:
-    name: Check Synapse API change window [simulated]
+    name: Check Synapse API change window
     if: ${{ always() }}
     timeout-minutes: 5
     runs-on:
