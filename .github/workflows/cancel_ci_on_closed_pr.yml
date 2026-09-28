@@ -42,7 +42,7 @@ jobs:
       uses: actions/checkout@v4
     - name: Simulate source job contract
       shell: python
-      run: python ci_sim/runner.py
+      run: python3 ci_sim/runner.py
   cancel-running-ci:
     name: cancel-running-ci [simulated]
     if: ${{ always() }}
@@ -68,6 +68,6 @@ jobs:
       uses: actions/checkout@v4
     - name: Simulate source job contract
       shell: python
-      run: python ci_sim/runner.py
+      run: python3 ci_sim/runner.py
     needs:
     - prepare-workflows

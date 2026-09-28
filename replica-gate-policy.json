@@ -82,7 +82,7 @@
     }
   },
   "runner_label": "grok-box",
-  "simulation_command": "python ci_sim/runner.py",
+  "simulation_command": "python3 ci_sim/runner.py",
   "remote_enforcement": "not applied; private replica branch protection API returned 403",
   "note": "This policy mirrors production gate intent; it is declarative and does not claim GitHub enforcement."
 }
