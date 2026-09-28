@@ -21,18 +21,12 @@ jobs:
     runs-on:
     - self-hosted
     - grok-box
-    strategy:
-      fail-fast: false
-      matrix:
-        replica_case:
-        - default
     env:
       REPLICA_REPOSITORY: synapse
       REPLICA_SOURCE_WORKFLOW: build_Pseudo_DLC.yml
       REPLICA_SOURCE_JOB: call-arsenal-pseudo-test
       REPLICA_SCOPE: public
-      SIMULATE_FAILURE: ${{ inputs.simulate_failure || vars.SIMULATE_FAILURE || ''
-        }}
+      SIMULATE_FAILURE: ${{ inputs.simulate_failure || vars.SIMULATE_FAILURE || '' }}
       MATRIX_JSON: ${{ toJson(matrix) }}
     steps:
     - name: Checkout replica harness

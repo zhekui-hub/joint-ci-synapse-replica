@@ -18,24 +18,18 @@ env:
   REPLICA_RUNNER_LABEL: grok-box
 jobs:
   driver_api_guard:
-    name: Check Synapse API change window
+    name: Check Synapse API change window / Check API change window
     if: ${{ always() }}
     timeout-minutes: 5
     runs-on:
     - self-hosted
     - grok-box
-    strategy:
-      fail-fast: false
-      matrix:
-        replica_case:
-        - default
     env:
       REPLICA_REPOSITORY: synapse
       REPLICA_SOURCE_WORKFLOW: driver_api_guard.yml
       REPLICA_SOURCE_JOB: driver_api_guard
       REPLICA_SCOPE: private
-      SIMULATE_FAILURE: ${{ inputs.simulate_failure || vars.SIMULATE_FAILURE || ''
-        }}
+      SIMULATE_FAILURE: ${{ inputs.simulate_failure || vars.SIMULATE_FAILURE || '' }}
       MATRIX_JSON: ${{ toJson(matrix) }}
     steps:
     - name: Checkout replica harness
@@ -50,18 +44,12 @@ jobs:
     runs-on:
     - self-hosted
     - grok-box
-    strategy:
-      fail-fast: false
-      matrix:
-        replica_case:
-        - default
     env:
       REPLICA_REPOSITORY: synapse
       REPLICA_SOURCE_WORKFLOW: driver_api_guard.yml
       REPLICA_SOURCE_JOB: refresh_open_pr_guards
       REPLICA_SCOPE: private
-      SIMULATE_FAILURE: ${{ inputs.simulate_failure || vars.SIMULATE_FAILURE || ''
-        }}
+      SIMULATE_FAILURE: ${{ inputs.simulate_failure || vars.SIMULATE_FAILURE || '' }}
       MATRIX_JSON: ${{ toJson(matrix) }}
     steps:
     - name: Checkout replica harness

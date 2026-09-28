@@ -1,62 +1,85 @@
 name: Joint CI participant replica [dry-run]
-
-on:
+'on':
   pull_request:
-    branches: [main]
+    branches:
+    - main
   workflow_dispatch:
     inputs:
       joint_id:
         required: false
         default: replica-manual
+        type: string
       joint_wait:
         required: false
         default: 'true'
+        type: string
       depends_on_json:
         required: false
         default: '{}'
-
+        type: string
+      report_only:
+        description: Explicit isolated report smoke; does not test dispatch
+        type: boolean
+        required: false
+        default: false
+      participants_json:
+        type: string
+        required: false
+        default: '["driver","synapse","sim"]'
+      simulate_failure:
+        type: string
+        required: false
+        default: ''
 permissions:
   contents: read
-
 jobs:
   independent-contract:
     name: Independent contract [simulated]
     timeout-minutes: 5
-    runs-on: [self-hosted, grok-box]
+    runs-on:
+    - self-hosted
+    - grok-box
     strategy:
       fail-fast: false
       matrix:
-        case: [default, negative-contract]
+        case:
+        - default
+        - negative-contract
     env:
       REPLICA_REPOSITORY: synapse
       REPLICA_SOURCE_WORKFLOW: joint_ci_hook
       REPLICA_SOURCE_JOB: independent-contract
       REPLICA_SCOPE: private
       MATRIX_JSON: ${{ toJson(matrix) }}
+      SIMULATE_FAILURE: ${{ inputs.simulate_failure || '' }}
     steps:
-      - uses: actions/checkout@v4
-      - run: python3 ci_sim/runner.py
-
+    - uses: actions/checkout@v4
+    - run: python3 ci_sim/runner.py
   joint-report:
     name: Joint report [simulated]
-    needs: independent-contract
-    if: ${{ always() }}
-    timeout-minutes: 5
-    runs-on: [self-hosted, grok-box]
+    timeout-minutes: 3
+    runs-on:
+    - self-hosted
+    - grok-box
     env:
       REPLICA_REPOSITORY: synapse
-      JOINT_CI_ID: ${{ inputs.joint_id || 'replica-pr' }}
+      JOINT_CI_ID: ${{ inputs.joint_id || github.head_ref || github.ref_name }}
       JOINT_WAIT: ${{ inputs.joint_wait || 'true' }}
-      JOINT_DEPS_JSON: ${{ inputs.depends_on_json || '{{}}' }}
+      JOINT_DEPS_JSON: ${{ inputs.depends_on_json || '{}' }}
       REPLICA_SOURCE_WORKFLOW: joint_ci_hook
       REPLICA_SOURCE_JOB: joint-report
       REPLICA_SCOPE: public
       JOINT_DISPATCH_TOKEN: ${{ secrets.JOINT_DISPATCH_TOKEN }}
-      GH_TOKEN: ${{ secrets.JOINT_DISPATCH_TOKEN }}
       JOINT_TARGET_REPO: zhekui-hub/joint-ci-arsenal-replica
-      GITHUB_HEAD_REF: ${{ github.head_ref || github.ref_name }}
-      GITHUB_SHA: ${{ github.sha }}
+      JOINT_REPORT_ONLY: ${{ inputs.report_only || false }}
+      JOINT_MEMBERS_JSON: ${{ inputs.participants_json || '["driver","synapse","sim"]' }}
     steps:
-      - uses: actions/checkout@v4
-      - run: python3 ci_sim/participant_report.py
-
+    - uses: actions/checkout@v4
+    - run: python3 ci_sim/participant_report.py
+    - name: Retain participant report
+      if: ${{ always() }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: joint-report
+        path: joint-report.json
+        if-no-files-found: error
