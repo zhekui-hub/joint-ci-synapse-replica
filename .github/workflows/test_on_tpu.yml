@@ -41,7 +41,7 @@ jobs:
     - name: Checkout replica harness
       uses: actions/checkout@v4
     - name: Simulate source job contract
-      shell: python
+      shell: bash
       run: python3 ci_sim/runner.py
   call-singlecard:
     name: call-singlecard [simulated]
@@ -67,7 +67,7 @@ jobs:
     - name: Checkout replica harness
       uses: actions/checkout@v4
     - name: Simulate source job contract
-      shell: python
+      shell: bash
       run: python3 ci_sim/runner.py
     needs:
     - pre-checks

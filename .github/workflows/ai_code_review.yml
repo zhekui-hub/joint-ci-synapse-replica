@@ -48,7 +48,7 @@ jobs:
     - name: Checkout replica harness
       uses: actions/checkout@v4
     - name: Simulate source job contract
-      shell: python
+      shell: bash
       run: python3 ci_sim/runner.py
   pr-agent-dispatch:
     name: pr-agent-dispatch [simulated]
@@ -74,5 +74,5 @@ jobs:
     - name: Checkout replica harness
       uses: actions/checkout@v4
     - name: Simulate source job contract
-      shell: python
+      shell: bash
       run: python3 ci_sim/runner.py

@@ -41,7 +41,7 @@ jobs:
     - name: Checkout replica harness
       uses: actions/checkout@v4
     - name: Simulate source job contract
-      shell: python
+      shell: bash
       run: python3 ci_sim/runner.py
   refresh_open_pr_guards:
     name: Refresh open PR API guards [simulated]
@@ -67,5 +67,5 @@ jobs:
     - name: Checkout replica harness
       uses: actions/checkout@v4
     - name: Simulate source job contract
-      shell: python
+      shell: bash
       run: python3 ci_sim/runner.py

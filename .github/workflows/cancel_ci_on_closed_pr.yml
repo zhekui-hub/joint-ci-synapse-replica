@@ -41,7 +41,7 @@ jobs:
     - name: Checkout replica harness
       uses: actions/checkout@v4
     - name: Simulate source job contract
-      shell: python
+      shell: bash
       run: python3 ci_sim/runner.py
   cancel-running-ci:
     name: cancel-running-ci [simulated]
@@ -67,7 +67,7 @@ jobs:
     - name: Checkout replica harness
       uses: actions/checkout@v4
     - name: Simulate source job contract
-      shell: python
+      shell: bash
       run: python3 ci_sim/runner.py
     needs:
     - prepare-workflows
