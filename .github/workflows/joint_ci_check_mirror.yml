@@ -1,0 +1,28 @@
+name: Joint CI check mirror
+
+'on':
+  repository_dispatch:
+    types: [joint_ci_check_mirror]
+  workflow_dispatch:
+    inputs:
+      payload:
+        description: JSON payload for a manual mirror update
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  checks: write
+
+jobs:
+  mirror:
+    name: mirror shared checks
+    runs-on: [self-hosted, grok-box]
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+      JOINT_CHECK_PAYLOAD: ${{ inputs.payload || toJson(github.event.client_payload) }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update participant Check Runs
+        run: python3 ci_sim/mirror_joint_checks.py
+

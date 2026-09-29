@@ -1,0 +1,34 @@
+name: Joint CI rerun
+
+'on':
+  workflow_dispatch:
+    inputs:
+      joint_key:
+        description: Joint key shown in the Arsenal state
+        required: true
+        type: string
+      head_sha:
+        description: Full SHA of this PR commit
+        required: true
+        type: string
+      test_name:
+        description: Exact shared Check Run name
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  dispatch:
+    name: request Arsenal test rerun
+    runs-on: [self-hosted, grok-box]
+    env:
+      GITHUB_REPOSITORY: ${{ github.repository }}
+      JOINT_DISPATCH_TOKEN: ${{ secrets.JOINT_DISPATCH_TOKEN }}
+      JOINT_RERUN_INPUTS: ${{ toJson(inputs) }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Request targeted Arsenal rerun
+        run: python3 ci_sim/dispatch_joint_rerun.py
+
