@@ -14,6 +14,10 @@ permissions:
   contents: read
   checks: write
 
+concurrency:
+  group: joint-ci-summary-${{ github.event.client_payload.joint_key || inputs.payload || github.run_id }}-${{ github.event.client_payload.head_sha || github.sha }}
+  cancel-in-progress: false
+
 jobs:
   mirror:
     name: mirror shared checks
@@ -22,6 +26,6 @@ jobs:
       GITHUB_TOKEN: ${{ github.token }}
       JOINT_CHECK_PAYLOAD: ${{ inputs.payload || toJson(github.event.client_payload) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Publish aggregate shared matrix Check Run
         run: python3 ci_sim/summary_joint_check.py
