@@ -18,3 +18,5 @@ This branch completes the fourth experiment after the Driver participant. Its re
 This commit validates that shared tests run once in Arsenal while their per-test checks remain visible from both participant PRs.
 
 \n
+## Joint CI direct status presentation
+This commit exercises one visible per-test status linking directly to the shared Arsenal job.
