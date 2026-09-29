@@ -31,4 +31,3 @@ jobs:
       - uses: actions/checkout@v4
       - name: Request targeted Arsenal rerun
         run: python3 ci_sim/dispatch_joint_rerun.py
-

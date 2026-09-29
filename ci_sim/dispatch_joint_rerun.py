@@ -41,4 +41,3 @@ try:
 except HTTPError as exc:
     print(f"JOINT_RERUN_DISPATCH={exc.code}")
     raise SystemExit(1)
-

@@ -134,4 +134,3 @@ with ThreadPoolExecutor(max_workers=12) as pool:
 if not ok:
     raise SystemExit("one or more participant Check Runs could not be updated")
 print(json.dumps({"repo": repo, "sha": sha, "phase": phase, "tests": len(tests)}))
-

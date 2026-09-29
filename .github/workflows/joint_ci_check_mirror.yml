@@ -25,4 +25,3 @@ jobs:
       - uses: actions/checkout@v4
       - name: Update participant Check Runs
         run: python3 ci_sim/mirror_joint_checks.py
-
