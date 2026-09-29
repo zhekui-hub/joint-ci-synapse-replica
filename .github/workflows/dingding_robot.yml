@@ -13,7 +13,7 @@ jobs:
     if: ${{ always() }}
     runs-on:
     - self-hosted
-    - replica-synapse
+    - grok-box
     strategy:
       fail-fast: false
       matrix:
@@ -36,7 +36,7 @@ jobs:
     if: ${{ always() }}
     runs-on:
     - self-hosted
-    - replica-synapse
+    - grok-box
     strategy:
       fail-fast: false
       matrix:
