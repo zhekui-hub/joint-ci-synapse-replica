@@ -35,7 +35,7 @@ jobs:
       MATRIX_JSON: ${{ toJson(matrix) }}
     steps:
       - uses: actions/checkout@v4
-      - run: python ci_sim/runner.py
+      - run: python3 ci_sim/runner.py
 
   joint-report:
     name: Joint report [simulated]
@@ -61,7 +61,7 @@ jobs:
       GITHUB_SHA: ${{ github.sha }}
     steps:
       - uses: actions/checkout@v4
-      - run: python ci_sim/participant_report.py
+      - run: python3 ci_sim/participant_report.py
       - name: Retain participant report
         if: ${{ always() }}
         uses: actions/upload-artifact@v4

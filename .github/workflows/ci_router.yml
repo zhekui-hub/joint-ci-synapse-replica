@@ -38,8 +38,8 @@ jobs:
       MATRIX_JSON: ${{ toJson(matrix) }}
     steps:
     - name: Simulate source job contract
-      shell: python
-      run: python ci_sim/runner.py
+      shell: bash
+      run: python3 ci_sim/runner.py
   prechecks:
     name: prechecks [simulated]
     if: ${{ github.event_name != 'pull_request' }}
@@ -62,8 +62,8 @@ jobs:
       MATRIX_JSON: ${{ toJson(matrix) }}
     steps:
     - name: Simulate source job contract
-      shell: python
-      run: python ci_sim/runner.py
+      shell: bash
+      run: python3 ci_sim/runner.py
   run_arc_multirepo:
     name: run_arc_multirepo [simulated]
     needs:
@@ -89,8 +89,8 @@ jobs:
       MATRIX_JSON: ${{ toJson(matrix) }}
     steps:
     - name: Simulate source job contract
-      shell: python
-      run: python ci_sim/runner.py
+      shell: bash
+      run: python3 ci_sim/runner.py
   run_driver_multirepo:
     name: run_driver_multirepo [simulated]
     needs:
@@ -116,8 +116,8 @@ jobs:
       MATRIX_JSON: ${{ toJson(matrix) }}
     steps:
     - name: Simulate source job contract
-      shell: python
-      run: python ci_sim/runner.py
+      shell: bash
+      run: python3 ci_sim/runner.py
   run_pseudo:
     name: run_pseudo [simulated]
     needs:
@@ -143,8 +143,8 @@ jobs:
       MATRIX_JSON: ${{ toJson(matrix) }}
     steps:
     - name: Simulate source job contract
-      shell: python
-      run: python ci_sim/runner.py
+      shell: bash
+      run: python3 ci_sim/runner.py
   aggregate:
     name: Synapse CI aggregate [simulated]
     needs:
@@ -174,5 +174,5 @@ jobs:
       MATRIX_JSON: ${{ toJson(matrix) }}
     steps:
     - name: Simulate source job contract
-      shell: python
-      run: python ci_sim/runner.py
+      shell: bash
+      run: python3 ci_sim/runner.py
