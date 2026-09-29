@@ -20,3 +20,6 @@ This commit validates that shared tests run once in Arsenal while their per-test
 \n
 ## Joint CI direct status presentation
 This commit exercises one visible per-test status linking directly to the shared Arsenal job.
+
+## Joint CI generation reset validation
+This commit verifies stale participant snapshots cannot start a mixed-SHA matrix.
