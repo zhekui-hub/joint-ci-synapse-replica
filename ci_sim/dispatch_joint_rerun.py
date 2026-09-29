@@ -5,9 +5,9 @@ from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 payload = json.loads(os.environ.get("JOINT_RERUN_INPUTS", "{}"))
-required = ["joint_key", "head_sha", "test_name"]
+required = ["joint_id", "joint_key", "head_sha", "test_name"]
 if any(not payload.get(key) for key in required):
-    raise SystemExit("joint_key, head_sha, and test_name are required")
+    raise SystemExit("joint_id, joint_key, head_sha, and test_name are required")
 if len(payload["head_sha"]) != 40:
     raise SystemExit("head_sha must be a full commit SHA")
 repository = os.environ.get("GITHUB_REPOSITORY", "")
@@ -18,6 +18,7 @@ body = {
     "event_type": "joint_ci_rerun",
     "client_payload": {
         "participant_repository": repository,
+        "joint_id": payload["joint_id"],
         "head_sha": payload["head_sha"],
         "joint_key": payload["joint_key"],
         "test_name": payload["test_name"],
