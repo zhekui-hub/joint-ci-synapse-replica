@@ -3,6 +3,10 @@ name: Joint CI rerun
 'on':
   workflow_dispatch:
     inputs:
+      joint_id:
+        description: Joint ID shown in the Arsenal state
+        required: true
+        type: string
       joint_key:
         description: Joint key shown in the Arsenal state
         required: true
