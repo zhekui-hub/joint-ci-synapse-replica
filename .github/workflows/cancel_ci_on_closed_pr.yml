@@ -32,8 +32,8 @@ jobs:
       MATRIX_JSON: ${{ toJson(matrix) }}
     steps:
     - name: Simulate source job contract
-      shell: python
-      run: python ci_sim/runner.py
+      shell: bash
+      run: python3 ci_sim/runner.py
   cancel-running-ci:
     name: cancel-running-ci [simulated]
     needs:
@@ -57,5 +57,5 @@ jobs:
       MATRIX_JSON: ${{ toJson(matrix) }}
     steps:
     - name: Simulate source job contract
-      shell: python
-      run: python ci_sim/runner.py
+      shell: bash
+      run: python3 ci_sim/runner.py

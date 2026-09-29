@@ -32,5 +32,5 @@ jobs:
       MATRIX_JSON: ${{ toJson(matrix) }}
     steps:
     - name: Simulate source job contract
-      shell: python
-      run: python ci_sim/runner.py
+      shell: bash
+      run: python3 ci_sim/runner.py

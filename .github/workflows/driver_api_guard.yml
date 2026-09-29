@@ -32,8 +32,8 @@ jobs:
       MATRIX_JSON: ${{ toJson(matrix) }}
     steps:
     - name: Simulate source job contract
-      shell: python
-      run: python ci_sim/runner.py
+      shell: bash
+      run: python3 ci_sim/runner.py
   refresh_open_pr_guards:
     name: Refresh open PR API guards [simulated]
     if: ${{ always() }}
@@ -55,5 +55,5 @@ jobs:
       MATRIX_JSON: ${{ toJson(matrix) }}
     steps:
     - name: Simulate source job contract
-      shell: python
-      run: python ci_sim/runner.py
+      shell: bash
+      run: python3 ci_sim/runner.py
