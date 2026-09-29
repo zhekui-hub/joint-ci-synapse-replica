@@ -1,12 +1,12 @@
-name: Joint CI check mirror
+name: Joint CI public summary
 
 'on':
   repository_dispatch:
-    types: [joint_ci_check_mirror]
+    types: [joint_ci_public_summary]
   workflow_dispatch:
     inputs:
       payload:
-        description: JSON payload for a manual mirror update
+        description: JSON payload for a manual summary update
         required: true
         type: string
 
@@ -23,5 +23,5 @@ jobs:
       JOINT_CHECK_PAYLOAD: ${{ inputs.payload || toJson(github.event.client_payload) }}
     steps:
       - uses: actions/checkout@v4
-      - name: Update participant Check Runs
-        run: python3 ci_sim/mirror_joint_checks.py
+      - name: Publish aggregate shared matrix Check Run
+        run: python3 ci_sim/summary_joint_check.py
