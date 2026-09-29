@@ -13,3 +13,5 @@ Dispatch `joint_ci_hook.yml` for the participant gate. Arsenal also exposes `joi
 ## Joint CI fourth experiment
 
 This branch completes the fourth experiment after the Driver participant. Its report completes the pair so Arsenal can run one shared matrix and return the per-job checks to both pull requests.
+
+<!-- final joint summary presentation demo -->
