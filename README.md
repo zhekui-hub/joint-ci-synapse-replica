@@ -13,3 +13,8 @@ Dispatch `joint_ci_hook.yml` for the participant gate. Arsenal also exposes `joi
 ## Joint CI fourth experiment
 
 This branch completes the fourth experiment after the Driver participant. Its report completes the pair so Arsenal can run one shared matrix and return the per-job checks to both pull requests.
+
+## Joint CI seamless switch validation
+This commit validates that shared tests run once in Arsenal while their per-test checks remain visible from both participant PRs.
+
+\n
