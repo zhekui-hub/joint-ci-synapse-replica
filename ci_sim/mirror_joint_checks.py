@@ -49,12 +49,20 @@ def iso_now():
 
 
 def existing_checks(repo, sha):
-    response = request("GET", f"repos/{repo}/commits/{sha}/check-runs?per_page=100")
-    if response is None:
-        raise SystemExit("cannot list participant check runs")
+    checks = []
+    for page in range(1, 21):
+        response = request(
+            "GET", f"repos/{repo}/commits/{sha}/check-runs?per_page=100&page={page}"
+        )
+        if response is None:
+            raise SystemExit("cannot list participant check runs")
+        batch = response.get("check_runs", [])
+        checks.extend(batch)
+        if len(batch) < 100:
+            break
     return {
         (item.get("external_id"), item.get("name")): item.get("id")
-        for item in response.get("check_runs", [])
+        for item in checks
     }
 
 
