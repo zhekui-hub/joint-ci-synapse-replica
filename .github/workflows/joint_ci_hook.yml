@@ -46,7 +46,7 @@ jobs:
       REPLICA_REPOSITORY: synapse
       JOINT_CI_ID: ${{ inputs.joint_id || github.head_ref || github.ref_name }}
       JOINT_WAIT: ${{ inputs.joint_wait || 'true' }}
-      JOINT_DEPS_JSON: ${{ inputs.depends_on_json || '{{}}' }}
+      JOINT_DEPS_JSON: ${{ inputs.depends_on_json || '{}' }}
       REPLICA_SOURCE_WORKFLOW: joint_ci_hook
       REPLICA_SOURCE_JOB: joint-report
       REPLICA_SCOPE: joint
