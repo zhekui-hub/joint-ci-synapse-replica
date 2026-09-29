@@ -48,7 +48,8 @@ jobs:
       JOINT_DEPS_JSON: ${{ inputs.depends_on_json || '{{}}' }}
       REPLICA_SOURCE_WORKFLOW: joint_ci_hook
       REPLICA_SOURCE_JOB: joint-report
-      REPLICA_SCOPE: public
+      REPLICA_SCOPE: joint
+      REPLICA_EXECUTION_OWNER: arsenal
       GITHUB_HEAD_REF: ${{ github.head_ref || github.ref_name }}
       GITHUB_SHA: ${{ github.sha }}
     steps:

@@ -11,7 +11,8 @@
         "default"
       ]
     },
-    "needs": []
+    "needs": [],
+    "execution_owner": "participant"
   },
   {
     "scope": "private",
@@ -25,7 +26,8 @@
         "default"
       ]
     },
-    "needs": []
+    "needs": [],
+    "execution_owner": "participant"
   },
   {
     "scope": "private",
@@ -39,10 +41,11 @@
         "default"
       ]
     },
-    "needs": []
+    "needs": [],
+    "execution_owner": "participant"
   },
   {
-    "scope": "public",
+    "scope": "shared-arsenal",
     "repo": "synapse",
     "workflow": "build_Pseudo_DLC.yml",
     "job": "call-arsenal-pseudo-test",
@@ -53,7 +56,8 @@
         "default"
       ]
     },
-    "needs": []
+    "needs": [],
+    "execution_owner": "arsenal"
   },
   {
     "scope": "private",
@@ -67,7 +71,8 @@
         "default"
       ]
     },
-    "needs": []
+    "needs": [],
+    "execution_owner": "participant"
   },
   {
     "scope": "private",
@@ -83,10 +88,11 @@
     },
     "needs": [
       "prepare-workflows"
-    ]
+    ],
+    "execution_owner": "participant"
   },
   {
-    "scope": "public",
+    "scope": "shared-arsenal",
     "repo": "synapse",
     "workflow": "ci_router.yml",
     "job": "route",
@@ -97,10 +103,11 @@
         "default"
       ]
     },
-    "needs": []
+    "needs": [],
+    "execution_owner": "arsenal"
   },
   {
-    "scope": "public",
+    "scope": "shared-arsenal",
     "repo": "synapse",
     "workflow": "ci_router.yml",
     "job": "prechecks",
@@ -111,10 +118,11 @@
         "default"
       ]
     },
-    "needs": []
+    "needs": [],
+    "execution_owner": "arsenal"
   },
   {
-    "scope": "public",
+    "scope": "shared-arsenal",
     "repo": "synapse",
     "workflow": "ci_router.yml",
     "job": "run_arc_multirepo",
@@ -128,10 +136,11 @@
     "needs": [
       "route",
       "prechecks"
-    ]
+    ],
+    "execution_owner": "arsenal"
   },
   {
-    "scope": "public",
+    "scope": "shared-arsenal",
     "repo": "synapse",
     "workflow": "ci_router.yml",
     "job": "run_driver_multirepo",
@@ -145,10 +154,11 @@
     "needs": [
       "route",
       "prechecks"
-    ]
+    ],
+    "execution_owner": "arsenal"
   },
   {
-    "scope": "public",
+    "scope": "shared-arsenal",
     "repo": "synapse",
     "workflow": "ci_router.yml",
     "job": "run_pseudo",
@@ -162,10 +172,11 @@
     "needs": [
       "route",
       "prechecks"
-    ]
+    ],
+    "execution_owner": "arsenal"
   },
   {
-    "scope": "public",
+    "scope": "private",
     "repo": "synapse",
     "workflow": "ci_router.yml",
     "job": "aggregate",
@@ -182,7 +193,8 @@
       "run_arc_multirepo",
       "run_driver_multirepo",
       "run_pseudo"
-    ]
+    ],
+    "execution_owner": "participant"
   },
   {
     "scope": "private",
@@ -196,7 +208,8 @@
         "default"
       ]
     },
-    "needs": []
+    "needs": [],
+    "execution_owner": "participant"
   },
   {
     "scope": "private",
@@ -210,7 +223,8 @@
         "default"
       ]
     },
-    "needs": []
+    "needs": [],
+    "execution_owner": "participant"
   },
   {
     "scope": "private",
@@ -224,7 +238,8 @@
         "default"
       ]
     },
-    "needs": []
+    "needs": [],
+    "execution_owner": "participant"
   },
   {
     "scope": "private",
@@ -238,7 +253,8 @@
         "default"
       ]
     },
-    "needs": []
+    "needs": [],
+    "execution_owner": "participant"
   },
   {
     "scope": "private",
@@ -252,7 +268,8 @@
         "default"
       ]
     },
-    "needs": []
+    "needs": [],
+    "execution_owner": "participant"
   },
   {
     "scope": "private",
@@ -266,7 +283,8 @@
         "default"
       ]
     },
-    "needs": []
+    "needs": [],
+    "execution_owner": "participant"
   },
   {
     "scope": "private",
@@ -280,7 +298,8 @@
         "default"
       ]
     },
-    "needs": []
+    "needs": [],
+    "execution_owner": "participant"
   },
   {
     "scope": "private",
@@ -296,10 +315,11 @@
     },
     "needs": [
       "pre-checks"
-    ]
+    ],
+    "execution_owner": "participant"
   },
   {
-    "scope": "public",
+    "scope": "shared-arsenal",
     "repo": "joint",
     "workflow": "joint-triad",
     "job": "public-smoke",
@@ -314,7 +334,8 @@
       "driver",
       "synapse",
       "sim"
-    ]
+    ],
+    "execution_owner": "arsenal"
   },
   {
     "scope": "private",
@@ -327,6 +348,7 @@
         "default"
       ]
     },
-    "needs": []
+    "needs": [],
+    "execution_owner": "participant"
   }
 ]

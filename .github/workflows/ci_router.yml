@@ -18,7 +18,7 @@ env:
 jobs:
   route:
     name: route [simulated]
-    if: ${{ always() }}
+    if: ${{ github.event_name != 'pull_request' }}
     runs-on:
     - self-hosted
     - replica-synapse
@@ -31,7 +31,8 @@ jobs:
       REPLICA_REPOSITORY: synapse
       REPLICA_SOURCE_WORKFLOW: ci_router.yml
       REPLICA_SOURCE_JOB: route
-      REPLICA_SCOPE: public
+      REPLICA_SCOPE: shared-arsenal
+      REPLICA_EXECUTION_OWNER: arsenal
       SIMULATE_FAILURE: ${{ inputs.simulate_failure || vars.SIMULATE_FAILURE || ''
         }}
       MATRIX_JSON: ${{ toJson(matrix) }}
@@ -41,7 +42,7 @@ jobs:
       run: python ci_sim/runner.py
   prechecks:
     name: prechecks [simulated]
-    if: ${{ always() }}
+    if: ${{ github.event_name != 'pull_request' }}
     runs-on:
     - self-hosted
     - replica-synapse
@@ -54,7 +55,8 @@ jobs:
       REPLICA_REPOSITORY: synapse
       REPLICA_SOURCE_WORKFLOW: ci_router.yml
       REPLICA_SOURCE_JOB: prechecks
-      REPLICA_SCOPE: public
+      REPLICA_SCOPE: shared-arsenal
+      REPLICA_EXECUTION_OWNER: arsenal
       SIMULATE_FAILURE: ${{ inputs.simulate_failure || vars.SIMULATE_FAILURE || ''
         }}
       MATRIX_JSON: ${{ toJson(matrix) }}
@@ -67,7 +69,7 @@ jobs:
     needs:
     - route
     - prechecks
-    if: ${{ always() }}
+    if: ${{ github.event_name != 'pull_request' }}
     runs-on:
     - self-hosted
     - replica-synapse
@@ -80,7 +82,8 @@ jobs:
       REPLICA_REPOSITORY: synapse
       REPLICA_SOURCE_WORKFLOW: ci_router.yml
       REPLICA_SOURCE_JOB: run_arc_multirepo
-      REPLICA_SCOPE: public
+      REPLICA_SCOPE: shared-arsenal
+      REPLICA_EXECUTION_OWNER: arsenal
       SIMULATE_FAILURE: ${{ inputs.simulate_failure || vars.SIMULATE_FAILURE || ''
         }}
       MATRIX_JSON: ${{ toJson(matrix) }}
@@ -93,7 +96,7 @@ jobs:
     needs:
     - route
     - prechecks
-    if: ${{ always() }}
+    if: ${{ github.event_name != 'pull_request' }}
     runs-on:
     - self-hosted
     - replica-synapse
@@ -106,7 +109,8 @@ jobs:
       REPLICA_REPOSITORY: synapse
       REPLICA_SOURCE_WORKFLOW: ci_router.yml
       REPLICA_SOURCE_JOB: run_driver_multirepo
-      REPLICA_SCOPE: public
+      REPLICA_SCOPE: shared-arsenal
+      REPLICA_EXECUTION_OWNER: arsenal
       SIMULATE_FAILURE: ${{ inputs.simulate_failure || vars.SIMULATE_FAILURE || ''
         }}
       MATRIX_JSON: ${{ toJson(matrix) }}
@@ -119,7 +123,7 @@ jobs:
     needs:
     - route
     - prechecks
-    if: ${{ always() }}
+    if: ${{ github.event_name != 'pull_request' }}
     runs-on:
     - self-hosted
     - replica-synapse
@@ -132,7 +136,8 @@ jobs:
       REPLICA_REPOSITORY: synapse
       REPLICA_SOURCE_WORKFLOW: ci_router.yml
       REPLICA_SOURCE_JOB: run_pseudo
-      REPLICA_SCOPE: public
+      REPLICA_SCOPE: shared-arsenal
+      REPLICA_EXECUTION_OWNER: arsenal
       SIMULATE_FAILURE: ${{ inputs.simulate_failure || vars.SIMULATE_FAILURE || ''
         }}
       MATRIX_JSON: ${{ toJson(matrix) }}
@@ -161,7 +166,9 @@ jobs:
       REPLICA_REPOSITORY: synapse
       REPLICA_SOURCE_WORKFLOW: ci_router.yml
       REPLICA_SOURCE_JOB: aggregate
-      REPLICA_SCOPE: public
+      REPLICA_SCOPE: participant-aggregate
+      REPLICA_EXECUTION_OWNER: participant
+      REPLICA_ALLOW_SKIPPED_NEEDS: 'true'
       SIMULATE_FAILURE: ${{ inputs.simulate_failure || vars.SIMULATE_FAILURE || ''
         }}
       MATRIX_JSON: ${{ toJson(matrix) }}

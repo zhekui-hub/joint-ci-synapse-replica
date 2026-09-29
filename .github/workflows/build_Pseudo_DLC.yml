@@ -23,7 +23,8 @@ jobs:
       REPLICA_REPOSITORY: synapse
       REPLICA_SOURCE_WORKFLOW: build_Pseudo_DLC.yml
       REPLICA_SOURCE_JOB: call-arsenal-pseudo-test
-      REPLICA_SCOPE: public
+      REPLICA_SCOPE: shared-arsenal
+      REPLICA_EXECUTION_OWNER: arsenal
       SIMULATE_FAILURE: ${{ inputs.simulate_failure || vars.SIMULATE_FAILURE || ''
         }}
       MATRIX_JSON: ${{ toJson(matrix) }}
