@@ -27,5 +27,5 @@ jobs:
       JOINT_CHECK_PAYLOAD: ${{ inputs.payload || toJson(github.event.client_payload) }}
     steps:
       - uses: actions/checkout@v5
-      - name: Publish aggregate shared matrix Check Run
-        run: python3 ci_sim/summary_joint_check.py
+      - name: Publish one native Check Run per shared test
+        run: python3 ci_sim/mirror_joint_checks.py
