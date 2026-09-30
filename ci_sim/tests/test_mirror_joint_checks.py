@@ -1,6 +1,7 @@
 import importlib.util
 from pathlib import Path
 import unittest
+from unittest.mock import patch
 
 
 MODULE_PATH = Path(__file__).parents[1] / "mirror_joint_checks.py"
@@ -55,6 +56,44 @@ class MirrorCheckTests(unittest.TestCase):
         self.assertIn('"profile": ["default"]', rendered["text"])
         self.assertIn("precheck", rendered["text"])
         self.assertIn("/job/2", rendered["text"])
+
+    def test_unique_job_uses_short_joint_name(self):
+        tests = [{"id": "one", "job": "build", "display_name": "joint/build [default]"}]
+        self.assertEqual(MODULE.check_names(tests), ["joint/build"])
+
+    def test_duplicate_job_keeps_display_suffix(self):
+        tests = [
+            {"id": "one", "job": "build", "display_name": "joint/build [default]"},
+            {"id": "two", "job": "build", "display_name": "joint/build [cuda]"},
+        ]
+        self.assertEqual(
+            MODULE.check_names(tests), ["joint/build [default]", "joint/build [cuda]"]
+        )
+
+    def test_duplicate_display_suffix_gets_stable_id_suffix(self):
+        tests = [
+            {"id": "one", "job": "build", "display_name": "joint/build [same]"},
+            {"id": "two", "job": "build", "display_name": "joint/build [same]"},
+        ]
+        self.assertEqual(
+            MODULE.check_names(tests), ["joint/build [same]", "joint/build [same] [two]"]
+        )
+
+    def test_existing_checks_are_indexed_by_external_id(self):
+        checks = [
+            {"id": 11, "external_id": "joint-key:one", "name": "joint/build"},
+            {"id": 12, "external_id": "joint-key:two", "name": "joint/build"},
+        ]
+        with patch.object(MODULE, "request", return_value={"check_runs": checks}):
+            result = MODULE.existing_checks("owner/repo", "a" * 40)
+        self.assertEqual(result, {"joint-key:one": 11, "joint-key:two": 12})
+
+    def test_output_uses_resolved_name(self):
+        test = {"id": "one", "job": "build", "display_name": "joint/build [cuda]"}
+        rendered = MODULE.output(
+            test, "completed", "https://example.test/job", "joint/build [cuda]"
+        )
+        self.assertIn("### joint/build [cuda]", rendered["text"])
 
 
 if __name__ == "__main__":
