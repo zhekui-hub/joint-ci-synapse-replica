@@ -1,6 +1,8 @@
 import importlib.util
+import json
 from pathlib import Path
 import unittest
+from unittest.mock import patch
 
 
 MODULE_PATH = Path(__file__).parents[1] / "mirror_joint_checks.py"
@@ -30,6 +32,50 @@ def payload(**overrides):
 
 
 class MirrorCheckTests(unittest.TestCase):
+    def test_app_publisher_returns_before_payload_token_or_api(self):
+        with (
+            patch.dict(MODULE.os.environ, {
+                "JOINT_CI_CHECK_PUBLISHER": "app",
+                "JOINT_CHECK_PAYLOAD": "not valid JSON",
+            }, clear=True),
+            patch.object(MODULE, "token") as token,
+            patch.object(MODULE, "request") as request,
+            patch("builtins.print"),
+        ):
+            MODULE.main()
+        token.assert_not_called()
+        request.assert_not_called()
+
+    def test_default_publisher_keeps_legacy_api_path(self):
+        report = payload(
+            joint_key="generation",
+            tests=[{"id": "test.compile", "job": "compile", "result": "success"}],
+        )
+        with (
+            patch.dict(MODULE.os.environ, {
+                "GITHUB_REPOSITORY": DRIVER_REPO,
+                "JOINT_CHECK_PAYLOAD": json.dumps(report),
+            }, clear=True),
+            patch.object(MODULE, "request", side_effect=[
+                {"check_runs": []}, {"id": 123}
+            ]) as request,
+            patch("builtins.print"),
+        ):
+            MODULE.main()
+        self.assertEqual([call.args[0] for call in request.call_args_list], ["GET", "POST"])
+        self.assertEqual(request.call_args_list[1].args[2]["head_sha"], DRIVER_SHA)
+
+    def test_unknown_publisher_fails_before_api(self):
+        with (
+            patch.dict(MODULE.os.environ, {"JOINT_CI_CHECK_PUBLISHER": "other"}, clear=True),
+            patch.object(MODULE, "token") as token,
+            patch.object(MODULE, "request") as request,
+        ):
+            with self.assertRaisesRegex(SystemExit, "must be legacy or app"):
+                MODULE.main()
+        token.assert_not_called()
+        request.assert_not_called()
+
     def test_check_name_is_short_and_stable(self):
         self.assertEqual(MODULE.check_name({"job": "compile"}), "joint/compile")
 

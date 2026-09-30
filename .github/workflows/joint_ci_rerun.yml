@@ -25,6 +25,7 @@ permissions:
 
 jobs:
   dispatch:
+    if: ${{ vars.JOINT_CI_CHECK_PUBLISHER != 'app' }}
     name: request Arsenal test rerun
     runs-on: [self-hosted, grok-box]
     env:

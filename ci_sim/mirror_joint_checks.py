@@ -167,6 +167,13 @@ def upsert(repo, sha, joint_key, test, phase, check_id=None, target=None):
 
 
 def main():
+    publisher = os.environ.get("JOINT_CI_CHECK_PUBLISHER", "legacy").strip().lower() or "legacy"
+    if publisher not in {"legacy", "app"}:
+        raise SystemExit("JOINT_CI_CHECK_PUBLISHER must be legacy or app")
+    if publisher == "app":
+        print("JOINT_MIRROR_SKIPPED: shared checks are published by the Joint CI App")
+        return
+
     payload = json.loads(os.environ.get("JOINT_CHECK_PAYLOAD", "{}"))
     repository = os.environ.get("GITHUB_REPOSITORY", "")
     phase, repo, sha = validate_payload(payload, repository)

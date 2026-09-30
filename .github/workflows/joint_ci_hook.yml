@@ -3,6 +3,7 @@ name: Joint CI participant replica
 on:
   pull_request:
     branches: [main]
+    types: [opened, synchronize, reopened, edited]
   workflow_dispatch:
     inputs:
       joint_id:
@@ -39,7 +40,6 @@ jobs:
 
   joint-report:
     name: Joint report [simulated]
-    needs: independent-contract
     if: ${{ always() }}
     runs-on: [self-hosted, grok-box]
     env:

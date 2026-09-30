@@ -22,9 +22,11 @@ concurrency:
 
 jobs:
   mirror:
+    if: ${{ vars.JOINT_CI_CHECK_PUBLISHER != 'app' }}
     name: mirror shared checks
     runs-on: [self-hosted, grok-box]
     env:
+      JOINT_CI_CHECK_PUBLISHER: ${{ vars.JOINT_CI_CHECK_PUBLISHER || 'legacy' }}
       GITHUB_TOKEN: ${{ github.token }}
       JOINT_CHECK_PAYLOAD: ${{ inputs.payload || toJson(github.event.client_payload) }}
     steps:
