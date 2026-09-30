@@ -15,7 +15,9 @@ permissions:
   checks: write
 
 concurrency:
-  group: joint-ci-summary-${{ github.event.client_payload.joint_key || inputs.payload || github.run_id }}-${{ github.event.client_payload.head_sha || github.sha }}
+  # Do not put the full JSON input in the concurrency key. It can exceed the
+  # group-length limit and makes two updates for the same joint independent.
+  group: joint-ci-summary-${{ github.event.client_payload.joint_key || github.run_id }}-${{ github.event.client_payload.head_sha || github.sha }}
   cancel-in-progress: false
 
 jobs:
