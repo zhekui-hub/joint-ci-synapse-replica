@@ -1,37 +1,47 @@
-name: Joint CI rerun
+# Author: zhekui. Short participant relay for the isolated Actions-only trial.
+# sync/pending mirror verified source jobs; other operations request a rerun.
+name: Joint CI Actions relay
+run-name: No App relay ${{ inputs.operation }} ${{ inputs.source_run_id }} ${{ inputs.expected_attempt }}
 
 'on':
+  push:
+    branches: [zhekui/feat-no-app-demo-20260930]
   workflow_dispatch:
     inputs:
-      joint_id:
-        description: Joint ID shown in the Arsenal state
+      operation:
+        description: Synchronize checks or request an Arsenal rerun
+        required: true
+        type: choice
+        default: sync
+        options: [sync, pending, failed, all, build, unit, integration]
+      source_run_id:
+        description: Arsenal Actions source run ID
         required: true
         type: string
-      joint_key:
-        description: Joint key shown in the Arsenal state
+      expected_attempt:
+        description: Current source run attempt (rejects stale requests)
         required: true
-        type: string
-      head_sha:
-        description: Full SHA of this PR commit
-        required: true
-        type: string
-      test_name:
-        description: Exact shared Check Run name
-        required: true
+        default: '1'
         type: string
 
 permissions:
   contents: read
+  checks: write
+
+concurrency:
+  group: joint-actions-relay-${{ inputs.source_run_id }}
+  cancel-in-progress: false
 
 jobs:
-  dispatch:
-    name: request Arsenal test rerun
+  relay:
+    name: sync or rerun shared tests
     runs-on: [self-hosted, grok-box]
+    timeout-minutes: 5
     env:
-      GITHUB_REPOSITORY: ${{ github.repository }}
+      GITHUB_TOKEN: ${{ github.token }}
       JOINT_DISPATCH_TOKEN: ${{ secrets.JOINT_DISPATCH_TOKEN }}
-      JOINT_RERUN_INPUTS: ${{ toJson(inputs) }}
+      JOINT_RELAY_INPUTS: ${{ toJson(inputs) }}
     steps:
-      - uses: actions/checkout@v4
-      - name: Request targeted Arsenal rerun
-        run: python3 ci_sim/dispatch_joint_rerun.py
+      - uses: actions/checkout@v5
+      - name: Verify source and update this repository
+        run: python3 ci_sim/actions_relay.py
